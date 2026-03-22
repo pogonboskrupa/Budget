@@ -322,6 +322,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .uc-action:hover{color:var(--fg)}
 .install-btn{background:var(--accent);color:#000;border:none;border-radius:20px;padding:4px 10px;font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
 .install-btn:hover{opacity:.85}
+#ios-install-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#1a1a1a;border-bottom:1px solid #2a2a2a;padding:8px 16px;font-size:.75rem;color:var(--muted);line-height:1.4}
+#ios-install-banner strong{color:var(--fg)}
+#ios-install-banner .ios-share-icon{font-style:normal;color:var(--accent)}
+#ios-install-banner button{background:none;border:none;color:var(--muted);font-size:.9rem;cursor:pointer;flex-shrink:0;padding:0 2px}
 
 /* ── APP WRAPPER ── */
 #app-wrap{display:none}
@@ -395,6 +399,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <button class="uc-action" onclick="signOutUser()" title="Zaključaj">↩</button>
     </div>
   </div>
+</div>
+
+<!-- iOS install banner -->
+<div id="ios-install-banner" style="display:none">
+  <span>Za instalaciju: pritisni <strong>Dijeli</strong> <span class="ios-share-icon">⎙</span> → <strong>Dodaj na početni zaslon</strong></span>
+  <button onclick="document.getElementById('ios-install-banner').style.display='none';localStorage.setItem('ios-banner-dismissed','1')" aria-label="Zatvori">✕</button>
 </div>
 
 <!-- TABS -->
@@ -1848,6 +1858,17 @@ if(saved && PROFILES[saved]) {
 if('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW reg failed:', err));
 }
+
+// iOS install banner
+(function() {
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = navigator.standalone === true;
+  const dismissed = localStorage.getItem('ios-banner-dismissed');
+  if(isIos && !isStandalone && !dismissed) {
+    const banner = document.getElementById('ios-install-banner');
+    if(banner) banner.style.display = 'flex';
+  }
+})();
 
 // PWA install prompt
 let _installPrompt = null;
