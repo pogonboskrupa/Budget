@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Budžet — Nedim Ćehić</title>
 <meta name="theme-color" content="#0f0f0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Budžet Nedim">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 
 <!-- Firebase SDK (compat) -->
@@ -204,6 +210,61 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 /* TOAST */
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 18px;border-radius:12px;font-size:.78rem;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;z-index:100;white-space:nowrap;max-width:88vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── ŠTEDNJA TAB ── */
+.stednja-hero{background:linear-gradient(135deg,#0d1f2d,#071520);border:1px solid var(--accent3);border-radius:16px;padding:16px;margin-bottom:10px}
+.sh-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.sh-cell{text-align:center}
+.sh-label{font-size:.54rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:3px}
+.sh-amt{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;letter-spacing:-.5px;line-height:1}
+.sh-amt.free{color:var(--accent3)}
+.sh-amt.real{color:var(--accent)}
+.sh-amt.total{color:var(--green)}
+.sh-rate{text-align:center;margin-top:4px}
+.sh-rate-val{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--accent)}
+.sh-rate-sub{font-size:.6rem;color:var(--muted);margin-top:1px}
+
+.goal-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:10px}
+.goal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.goal-label{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+.goal-edit-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:.65rem;padding:4px 10px;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.goal-edit-btn:hover{color:var(--accent);border-color:var(--accent)}
+.goal-progress-text{display:flex;justify-content:space-between;margin-bottom:5px}
+.gpt-done{font-family:'Syne',sans-serif;font-size:.82rem;font-weight:800;color:var(--accent)}
+.gpt-target{font-size:.72rem;color:var(--muted)}
+.goal-bar-track{height:10px;background:var(--surface2);border-radius:10px;overflow:hidden;margin-bottom:6px}
+.goal-bar-fill{height:100%;border-radius:10px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.goal-bar-fill.s-low{background:var(--accent3)}
+.goal-bar-fill.s-mid{background:var(--accent)}
+.goal-bar-fill.s-done{background:var(--green)}
+.goal-sub{font-size:.62rem;color:var(--muted);text-align:center}
+.goal-input-row{display:flex;gap:7px;margin-top:10px}
+.goal-input-row input{flex:1;padding:8px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none}
+.goal-input-row input:focus{border-color:var(--accent)}
+.goal-input-row button{padding:8px 14px;background:var(--accent);color:#000;border:none;border-radius:8px;font-family:'Syne',sans-serif;font-size:.76rem;font-weight:700;cursor:pointer}
+
+.sav-entry-card{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border-radius:11px;margin-bottom:6px;border:1px solid var(--border)}
+.se-icon{font-size:1rem;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:rgba(200,245,53,.1);flex-shrink:0}
+.se-info{flex:1;min-width:0}
+.se-name{font-weight:500;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.se-sub{font-size:.6rem;color:var(--muted);margin-top:1px}
+.se-right{text-align:right;flex-shrink:0}
+.se-amt{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;color:var(--accent)}
+.se-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;padding:2px;border-radius:4px;display:block;margin-top:2px;margin-left:auto;transition:all .15s}
+.se-del:hover{color:var(--accent2)}
+
+.fund-badge{display:inline-block;font-size:.52rem;padding:1px 6px;border-radius:5px;font-weight:700;margin-left:4px;background:rgba(200,245,53,.12);color:var(--accent)}
+
+.stednja-chart{display:flex;align-items:flex-end;gap:4px;height:80px;margin-bottom:6px}
+.sc-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end}
+.sc-bar{width:100%;border-radius:4px 4px 0 0;min-height:3px;transition:height .4s;background:var(--accent);opacity:.8}
+.sc-bar.neg{background:var(--muted);opacity:.4}
+.sc-bar-label{font-size:.5rem;color:var(--muted);text-align:center}
+
+.total-saved-card{background:linear-gradient(135deg,#1a2a04,#111a00);border:1px solid var(--accent);border-radius:14px;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ts-label{font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:2px}
+.ts-amt{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--accent);letter-spacing:-.5px}
+.ts-icon{font-size:2rem;opacity:.6}
 </style>
 </head>
 <body>
@@ -229,6 +290,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   <button class="tab" onclick="showPage('rashodi')"><span class="tab-icon">💸</span>Rashodi</button>
   <button class="tab" onclick="showPage('historija')"><span class="tab-icon">📋</span>Historija</button>
   <button class="tab" onclick="showPage('analiza')"><span class="tab-icon">📈</span>Analiza</button>
+  <button class="tab" onclick="showPage('stednja')"><span class="tab-icon">🏦</span>Štednja</button>
 </div>
 
 <!-- ═══════════════════════ PREGLED ═══════════════════════ -->
@@ -468,6 +530,116 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
 </div>
 
+<!-- ═══════════════════════ ŠTEDNJA ═══════════════════════ -->
+<div class="page" id="page-stednja">
+  <div class="month-bar">
+    <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+    <span class="month-label" id="ml-stednja">—</span>
+    <button class="month-nav" onclick="changeMonth(1)">›</button>
+  </div>
+
+  <!-- Hero: slobodna sredstva vs stvarno ušteđeno -->
+  <div class="stednja-hero">
+    <div class="sh-row">
+      <div class="sh-cell">
+        <div class="sh-label">💸 Slobodna sredstva</div>
+        <div class="sh-amt free" id="sh-free">0 KM</div>
+        <div style="font-size:.58rem;color:var(--muted);margin-top:2px">prihodi − rashodi</div>
+      </div>
+      <div class="sh-cell">
+        <div class="sh-label">✅ Stvarno ušteđeno</div>
+        <div class="sh-amt real" id="sh-real">0 KM</div>
+        <div style="font-size:.58rem;color:var(--muted);margin-top:2px">ručno uneseno</div>
+      </div>
+    </div>
+    <div class="sh-rate">
+      <div class="sh-rate-val" id="sh-rate-val">—%</div>
+      <div class="sh-rate-sub" id="sh-rate-sub">od prihoda ušteđeno ovog mj.</div>
+    </div>
+  </div>
+
+  <!-- Ukupno ušteđeno (svi unosi) -->
+  <div class="total-saved-card">
+    <div>
+      <div class="ts-label">🏦 Ukupno ušteđeno (svi unosi)</div>
+      <div class="ts-amt" id="ts-total">0 KM</div>
+    </div>
+    <div class="ts-icon">💰</div>
+  </div>
+
+  <!-- Cilj štednje -->
+  <div class="goal-card">
+    <div class="goal-top">
+      <span class="goal-label">🎯 Cilj uštedine ovog mj.</span>
+      <button class="goal-edit-btn" onclick="toggleGoalEdit()">Postavi cilj</button>
+    </div>
+    <div id="goal-edit-row" style="display:none" class="goal-input-row">
+      <input type="number" id="goal-input" placeholder="npr. 300" step="1" min="0" inputmode="decimal">
+      <button onclick="saveGoal()">Spremi</button>
+    </div>
+    <div id="goal-display">
+      <div class="goal-progress-text">
+        <span class="gpt-done" id="goal-done">0 KM</span>
+        <span class="gpt-target" id="goal-target">cilj: nije postavljen</span>
+      </div>
+      <div class="goal-bar-track">
+        <div class="goal-bar-fill s-low" id="goal-bar" style="width:0%"></div>
+      </div>
+      <div class="goal-sub" id="goal-sub">Postavi cilj iznad</div>
+    </div>
+  </div>
+
+  <!-- Unos nove uštedine -->
+  <div class="form-section">
+    <div class="section-title"><span class="dot"></span>Unesi štednju</div>
+    <div class="row2">
+      <div class="field">
+        <label>Iznos (KM)</label>
+        <input type="number" id="sav-amount" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Datum</label>
+        <input type="date" id="sav-date">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Namjena / Fond</label>
+        <select id="sav-fund">
+          <option value="opsta">💰 Opšta štednja</option>
+          <option value="hitni">🚨 Hitni fond</option>
+          <option value="odmor">🏖️ Odmor / Putovanje</option>
+          <option value="auto">🚗 Auto</option>
+          <option value="kuca">🏠 Kuća / Stan</option>
+          <option value="djeca">👶 Djeca</option>
+          <option value="investicija">📈 Investicija</option>
+          <option value="ostalo-sav">📦 Ostalo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Napomena (opciono)</label>
+        <input type="text" id="sav-note" placeholder="npr. Sparkasse transfer" autocomplete="off">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addSavings()">+ Dodaj uštedinu</button>
+    <div class="divider"></div>
+    <div id="savings-list"><div class="empty-state" style="padding:14px"><div class="icon">🏦</div><p>Nema unesenih uštedina</p></div></div>
+    <div class="quick-total" id="savings-total-row" style="display:none">
+      <span class="qt-label">Ukupno ovog mj.</span>
+      <span class="qt-amt" id="savings-total-amt" style="color:var(--accent)">0 KM</span>
+    </div>
+  </div>
+
+  <!-- 6-mj trend -->
+  <div class="analytics-card">
+    <div class="analytics-title">📊 Trend uštedine (6 mj.)</div>
+    <div class="stednja-chart" id="stednja-chart"></div>
+    <div style="display:flex;gap:12px;margin-top:4px;justify-content:center">
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;background:var(--accent);border-radius:2px;opacity:.8"></div><span style="font-size:.6rem;color:var(--muted)">Ušteđeno</span></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -522,7 +694,9 @@ function setSyncStatus(status, label) {
 let localData = {
   incomes: [],
   expenses: [],
-  fixedExpenses: []
+  fixedExpenses: [],
+  savings: [],
+  savingsGoal: 0
 };
 
 // Kupovina purchases fetched from Kupovina Firebase (read-only)
@@ -625,7 +799,7 @@ function totalExpenses(key)  { return totalFixed() + totalVar(key) + totalKupovi
 // ════════════════════════════════════════════════
 //  TABS
 // ════════════════════════════════════════════════
-const PAGES = ['pregled','prihodi','rashodi','historija','analiza'];
+const PAGES = ['pregled','prihodi','rashodi','historija','analiza','stednja'];
 function showPage(id) {
   PAGES.forEach((p, i) => {
     document.getElementById('page-' + p).classList.toggle('active', p === id);
@@ -646,11 +820,12 @@ function renderAll() {
   renderExpenseList();
   renderHistory();
   renderAnalysis();
+  renderStednja();
 }
 
 function renderMonthLabels() {
   const lbl = `${MONTHS[curMonth]} ${curYear}`;
-  ['ml-pregled','ml-prihodi','ml-rashodi'].forEach(id => {
+  ['ml-pregled','ml-prihodi','ml-rashodi','ml-stednja'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.textContent = lbl;
   });
@@ -1125,6 +1300,8 @@ function loadBudzet() {
       localData.incomes       = d.incomes       ? Object.values(d.incomes)       : [];
       localData.expenses      = d.expenses      ? Object.values(d.expenses)      : [];
       localData.fixedExpenses = d.fixedExpenses ? Object.values(d.fixedExpenses) : [];
+      localData.savings       = d.savings       ? Object.values(d.savings)       : [];
+      localData.savingsGoal   = d.savingsGoal   || 0;
     }
     setSyncStatus('connected', 'Synced');
     renderAll();
@@ -1193,6 +1370,188 @@ function loadKupovinaExpenses() {
 }
 
 // ════════════════════════════════════════════════
+//  ŠTEDNJA
+// ════════════════════════════════════════════════
+const FUND_LABELS = {
+  opsta:'Opšta štednja', hitni:'Hitni fond', odmor:'Odmor/Putovanje',
+  auto:'Auto', kuca:'Kuća/Stan', djeca:'Djeca', investicija:'Investicija',
+  'ostalo-sav':'Ostalo'
+};
+const FUND_ICONS = {
+  opsta:'💰', hitni:'🚨', odmor:'🏖️', auto:'🚗',
+  kuca:'🏠', djeca:'👶', investicija:'📈', 'ostalo-sav':'📦'
+};
+
+function savingsForMonth(key) {
+  return (localData.savings || []).filter(s => s.date && s.date.startsWith(key));
+}
+function totalSavingsMonth(key) {
+  return savingsForMonth(key).reduce((s,e) => s + (e.amount||0), 0);
+}
+function totalSavingsAll() {
+  return (localData.savings || []).reduce((s,e) => s + (e.amount||0), 0);
+}
+
+function addSavings() {
+  const amount = parseFloat(document.getElementById('sav-amount').value);
+  const date   = document.getElementById('sav-date').value;
+  const fund   = document.getElementById('sav-fund').value;
+  const note   = document.getElementById('sav-note').value.trim();
+
+  if(!amount || amount <= 0) { toast('⚠️ Unesite ispravan iznos'); return; }
+  if(!date) { toast('⚠️ Odaberite datum'); return; }
+
+  const entry = { id: Date.now(), amount, date, fund, note };
+  localData.savings.push(entry);
+  pushBudzet('savings', entry);
+
+  document.getElementById('sav-amount').value = '';
+  document.getElementById('sav-note').value   = '';
+  document.getElementById('sav-date').value   = todayStr();
+  toast('💰 Uštedina dodana!');
+  renderAll();
+}
+
+function deleteSavings(id) {
+  localData.savings = localData.savings.filter(s => s.id !== id);
+  deleteBudzet('savings', id);
+  renderAll(); toast('🗑️ Unos obrisan');
+}
+
+let goalEditOpen = false;
+function toggleGoalEdit() {
+  goalEditOpen = !goalEditOpen;
+  const row = document.getElementById('goal-edit-row');
+  row.style.display = goalEditOpen ? 'flex' : 'none';
+  if(goalEditOpen) {
+    document.getElementById('goal-input').value = localData.savingsGoal || '';
+    document.getElementById('goal-input').focus();
+  }
+}
+
+function saveGoal() {
+  const val = parseFloat(document.getElementById('goal-input').value);
+  if(!val || val <= 0) { toast('⚠️ Unesite ispravan cilj'); return; }
+  localData.savingsGoal = val;
+  setSyncStatus('syncing', 'Snima...');
+  dbBudzet.ref(`${ROOT_BUD}/savingsGoal`).set(val)
+    .then(() => setSyncStatus('connected', 'Synced'))
+    .catch(err => { console.error(err); setSyncStatus('error', 'Greška'); });
+  goalEditOpen = false;
+  document.getElementById('goal-edit-row').style.display = 'none';
+  toast('🎯 Cilj postavljen!');
+  renderAll();
+}
+
+function renderStednja() {
+  const key   = curKey();
+  const inc   = totalIncome(key);
+  const exp   = totalExpenses(key);
+  const free  = inc - exp;
+  const real  = totalSavingsMonth(key);
+  const all   = totalSavingsAll();
+  const goal  = localData.savingsGoal || 0;
+  const rate  = inc > 0 ? Math.max(0, (real / inc) * 100) : 0;
+
+  // Hero
+  const freeEl = document.getElementById('sh-free');
+  if(freeEl) {
+    freeEl.textContent = fmt(Math.max(0, free));
+    freeEl.className   = 'sh-amt ' + (free >= 0 ? 'free' : 'sh-amt');
+    freeEl.style.color = free < 0 ? 'var(--red)' : '';
+  }
+  const realEl = document.getElementById('sh-real');
+  if(realEl) realEl.textContent = fmt(real);
+
+  const rateEl = document.getElementById('sh-rate-val');
+  if(rateEl) rateEl.textContent = rate.toFixed(0) + '%';
+  const rateSub = document.getElementById('sh-rate-sub');
+  if(rateSub) rateSub.textContent = inc === 0
+    ? 'Unesi prihode za ovaj mjesec'
+    : rate >= 20 ? '🎉 Odlično! Iznad 20% cilja'
+    : rate > 0   ? `od prihoda ušteđeno ovog mj.`
+    : 'Još nisi unio/la štednju za ovaj mj.';
+
+  // Total all time
+  const tsEl = document.getElementById('ts-total');
+  if(tsEl) tsEl.textContent = fmt(all);
+
+  // Goal progress
+  const goalDone   = document.getElementById('goal-done');
+  const goalTarget = document.getElementById('goal-target');
+  const goalBar    = document.getElementById('goal-bar');
+  const goalSub    = document.getElementById('goal-sub');
+  if(goalDone) goalDone.textContent = fmt(real);
+  if(goal > 0) {
+    const pct = Math.min((real / goal) * 100, 100);
+    if(goalTarget) goalTarget.textContent = `cilj: ${fmt(goal)}`;
+    if(goalBar) {
+      goalBar.style.width = pct.toFixed(1) + '%';
+      goalBar.className   = 'goal-bar-fill ' + (pct >= 100 ? 's-done' : pct >= 50 ? 's-mid' : 's-low');
+    }
+    if(goalSub) {
+      if(pct >= 100)      goalSub.textContent = '🎉 Cilj dostignut! Bravo!';
+      else if(real > 0)   goalSub.textContent = `Još ${fmt(goal - real)} do cilja (${pct.toFixed(0)}%)`;
+      else                goalSub.textContent = `Cilj: ${fmt(goal)} — počni štediti!`;
+    }
+  } else {
+    if(goalTarget) goalTarget.textContent = 'cilj: nije postavljen';
+    if(goalBar)    { goalBar.style.width = '0%'; goalBar.className = 'goal-bar-fill s-low'; }
+    if(goalSub)    goalSub.textContent = 'Postavi cilj iznad ↑';
+  }
+
+  // Savings list for current month
+  const list  = savingsForMonth(key).sort((a,b) => b.date.localeCompare(a.date));
+  const cont  = document.getElementById('savings-list');
+  const totR  = document.getElementById('savings-total-row');
+  const totA  = document.getElementById('savings-total-amt');
+  if(cont) {
+    if(!list.length) {
+      cont.innerHTML = '<div class="empty-state" style="padding:14px"><div class="icon">🏦</div><p>Nema unesenih uštedina za ovaj mj.</p></div>';
+      if(totR) totR.style.display = 'none';
+    } else {
+      cont.innerHTML = list.map(s => `
+        <div class="sav-entry-card">
+          <div class="se-icon">${FUND_ICONS[s.fund]||'💰'}</div>
+          <div class="se-info">
+            <div class="se-name">${s.note ? esc(s.note) : FUND_LABELS[s.fund]||'Štednja'}<span class="fund-badge">${FUND_LABELS[s.fund]||s.fund}</span></div>
+            <div class="se-sub">${s.date}</div>
+          </div>
+          <div class="se-right">
+            <div class="se-amt">${fmt(s.amount)}</div>
+            <button class="se-del" onclick="deleteSavings(${s.id})">🗑</button>
+          </div>
+        </div>`).join('');
+      const monthTotal = list.reduce((s,e) => s + e.amount, 0);
+      if(totR) { totR.style.display = 'flex'; totA.textContent = fmt(monthTotal); }
+    }
+  }
+
+  // 6-month trend chart
+  const chartEl = document.getElementById('stednja-chart');
+  if(chartEl) {
+    const months = [];
+    for(let i = 5; i >= 0; i--) {
+      let m = curMonth - i, y = curYear;
+      while(m < 0) { m += 12; y--; }
+      const k = monthKey(y, m);
+      months.push({ label: MONTHS[m].slice(0,3), val: totalSavingsMonth(k) });
+    }
+    const maxVal = Math.max(...months.map(m => m.val), 1);
+    chartEl.innerHTML = months.map(m => {
+      const h = Math.max((m.val / maxVal) * 70, m.val > 0 ? 4 : 0);
+      return `
+        <div class="sc-bar-wrap">
+          <div style="height:70px;display:flex;align-items:flex-end;justify-content:center">
+            <div class="sc-bar${m.val <= 0 ? ' neg' : ''}" style="width:80%;height:${h}px"></div>
+          </div>
+          <div class="sc-bar-label">${m.label}</div>
+        </div>`;
+    }).join('');
+  }
+}
+
+// ════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════
 document.getElementById('inc-date').value = todayStr();
@@ -1201,6 +1560,11 @@ setSyncStatus('syncing', 'Spajam...');
 
 loadBudzet();
 loadKupovinaExpenses();
+
+// Service Worker registration (PWA)
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW reg failed:', err));
+}
 </script>
 </body>
 </html>
