@@ -1652,11 +1652,36 @@ function renderStednja() {
 // ════════════════════════════════════════════════
 //  AUTH — Google Sign-In + profile mapping
 // ════════════════════════════════════════════════
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+function isStandalone() {
+  return window.navigator.standalone === true ||
+         window.matchMedia('(display-mode: standalone)').matches;
+}
+
 function signInGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
-  authBudzet.signInWithPopup(provider).catch(err => {
-    document.getElementById('auth-err').textContent = 'Greška: ' + err.message;
-  });
+  const errEl    = document.getElementById('auth-err');
+  errEl.textContent = '';
+
+  if(isIOS() || isStandalone()) {
+    // Safari / iOS PWA: popup is unreliable — use redirect instead
+    authBudzet.signInWithRedirect(provider).catch(err => {
+      errEl.textContent = 'Greška: ' + err.message;
+    });
+  } else {
+    authBudzet.signInWithPopup(provider).catch(err => {
+      if(err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+        // Fallback to redirect if popup blocked
+        authBudzet.signInWithRedirect(provider).catch(e => {
+          errEl.textContent = 'Greška: ' + e.message;
+        });
+      } else {
+        errEl.textContent = 'Greška: ' + err.message;
+      }
+    });
+  }
 }
 
 function signOutUser() {
@@ -1751,6 +1776,15 @@ function showWhoScreen() {
 // ════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════
+// Handle redirect result on page load (iOS Safari redirect flow)
+// "missing-initial-state" just means no redirect was in progress — safe to ignore
+authBudzet.getRedirectResult().catch(err => {
+  if(err.code !== 'auth/missing-initial-state' &&
+     err.code !== 'auth/null-user') {
+    document.getElementById('auth-err').textContent = 'Greška prijave: ' + err.message;
+  }
+});
+
 // Auth state observer handles startup — no manual loadBudzet() call here.
 
 // Service Worker registration (PWA)
