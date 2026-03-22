@@ -1834,11 +1834,7 @@ function activateProfile(key) {
 // ════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════
-// Sign in anonymously so Firebase DB rules (auth != null) are satisfied
-authBudzet.signInAnonymously().catch(() => {/* rules may be open — continue anyway */});
-
-// Restore session from localStorage
-(function() {
+function initApp() {
   const saved = localStorage.getItem(SESSION_KEY);
   if(saved && PROFILES[saved]) {
     activateProfile(saved);
@@ -1846,7 +1842,13 @@ authBudzet.signInAnonymously().catch(() => {/* rules may be open — continue an
     document.getElementById('auth-screen').style.display = 'flex';
     document.getElementById('app-wrap').style.display    = 'none';
   }
-})();
+}
+
+// Sign in anonymously so Firebase DB rules (auth != null) are satisfied,
+// then init — this ensures auth is ready before any DB reads fire.
+authBudzet.signInAnonymously()
+  .then(initApp)
+  .catch(initApp); // if anonymous auth disabled, still init (DB rules may be open)
 
 // Service Worker registration (PWA)
 if('serviceWorker' in navigator) {

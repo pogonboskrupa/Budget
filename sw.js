@@ -1,20 +1,6 @@
-const CACHE = 'budzet-v3';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.svg',
-  '/icon-512.svg',
-  'https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap',
-  'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js',
-  'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js'
-];
+const CACHE = 'budzet-v4';
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(ASSETS)).catch(() => {})
-  );
   self.skipWaiting();
 });
 
@@ -28,20 +14,26 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Network-first for Firebase (real-time data), cache-first for assets
   const url = e.request.url;
-  if(url.includes('firebasedatabase') || url.includes('firebaseio')) return;
 
+  // Never intercept Firebase realtime DB or auth traffic
+  if(
+    url.includes('firebasedatabase') ||
+    url.includes('firebaseio') ||
+    url.includes('identitytoolkit') ||
+    url.includes('securetoken.googleapis.com')
+  ) return;
+
+  // Network-first: try live network, cache result; fall back to cache if offline
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const network = fetch(e.request).then(res => {
+    fetch(e.request)
+      .then(res => {
         if(res && res.status === 200 && e.request.method === 'GET') {
           const clone = res.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return res;
-      }).catch(() => cached);
-      return cached || network;
-    })
+      })
+      .catch(() => caches.match(e.request))
   );
 });
