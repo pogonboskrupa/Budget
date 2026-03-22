@@ -537,17 +537,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <button class="month-nav" onclick="changeMonth(1)">›</button>
   </div>
 
-  <!-- Kupovina rashodi -->
-  <div class="form-section">
-    <div class="section-title"><span class="dot blue"></span>Rashodi iz Kupovina 🛒</div>
-    <div class="kupovina-hint">Ovi rashodi dolaze automatski iz Kupovina aplikacije kada Nedim završi kupovinu. Ne mogu se brisati ovdje.</div>
-    <div id="kupovina-expense-list"><div class="empty-state" style="padding:14px"><div class="icon">🛒</div><p>Nema kupovina za ovaj mjesec</p></div></div>
-    <div class="quick-total" id="kupovina-total-row" style="display:none">
-      <span class="qt-label">Ukupno Kupovina</span>
-      <span class="qt-amt" id="kupovina-total-amt" style="color:var(--accent3)">0 KM</span>
-    </div>
-  </div>
-
   <!-- Fixed expenses -->
   <div class="form-section">
     <div class="section-title"><span class="dot yellow"></span>Fiksni rashodi (rate & obaveze)</div>
@@ -625,6 +614,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div class="quick-total" id="expense-total-row" style="display:none">
       <span class="qt-label">Ukupno varijabilni</span>
       <span class="qt-amt" id="expense-total-amt" style="color:var(--red)">0 KM</span>
+    </div>
+  </div>
+
+  <!-- Kupovina rashodi -->
+  <div class="form-section">
+    <div class="section-title"><span class="dot blue"></span>Rashodi iz Kupovina 🛒</div>
+    <div class="kupovina-hint">Ovi rashodi dolaze automatski iz Kupovina aplikacije kada Nedim završi kupovinu. Ne mogu se brisati ovdje.</div>
+    <div id="kupovina-expense-list"><div class="empty-state" style="padding:14px"><div class="icon">🛒</div><p>Nema kupovina za ovaj mjesec</p></div></div>
+    <div class="quick-total" id="kupovina-total-row" style="display:none">
+      <span class="qt-label">Ukupno Kupovina</span>
+      <span class="qt-amt" id="kupovina-total-amt" style="color:var(--accent3)">0 KM</span>
     </div>
   </div>
 </div>
