@@ -320,6 +320,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .uc-name{font-size:.65rem;font-weight:600;color:var(--text)}
 .uc-action{background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--muted);padding:2px 1px;line-height:1;-webkit-tap-highlight-color:transparent}
 .uc-action:hover{color:var(--fg)}
+.install-btn{background:var(--accent);color:#000;border:none;border-radius:20px;padding:4px 10px;font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.install-btn:hover{opacity:.85}
 
 /* ── APP WRAPPER ── */
 #app-wrap{display:none}
@@ -381,6 +383,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <span class="fam" id="header-fam">Ćehić</span>
   </h1>
   <div class="header-right">
+    <button id="btn-install" class="install-btn" style="display:none" onclick="triggerInstall()" title="Instaliraj aplikaciju">⬇ Instaliraj</button>
     <div class="sync-pill">
       <div class="sync-dot" id="sync-dot"></div>
       <span id="sync-label">—</span>
@@ -1844,6 +1847,29 @@ if(saved && PROFILES[saved]) {
 // Service Worker registration (PWA)
 if('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW reg failed:', err));
+}
+
+// PWA install prompt
+let _installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _installPrompt = e;
+  const btn = document.getElementById('btn-install');
+  if(btn) btn.style.display = 'inline-flex';
+});
+window.addEventListener('appinstalled', () => {
+  _installPrompt = null;
+  const btn = document.getElementById('btn-install');
+  if(btn) btn.style.display = 'none';
+});
+function triggerInstall() {
+  if(!_installPrompt) return;
+  _installPrompt.prompt();
+  _installPrompt.userChoice.then(() => {
+    _installPrompt = null;
+    const btn = document.getElementById('btn-install');
+    if(btn) btn.style.display = 'none';
+  });
 }
 </script>
 </body>
