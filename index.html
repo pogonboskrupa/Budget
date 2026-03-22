@@ -16,7 +16,6 @@
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
 :root{
@@ -788,7 +787,6 @@ const kupovinaApp  = firebase.initializeApp(KUPOVINA_CONFIG, 'kupovina');
 
 const dbBudzet    = budzetApp.database();
 const dbKupovina  = kupovinaApp.database();
-const authBudzet  = budzetApp.auth();
 
 // ROOT_BUD is set dynamically after login: 'budzet_cehic/nedim' or 'budzet_cehic/azra'
 let ROOT_BUD = 'budzet_cehic/nedim'; // fallback, overwritten on login
@@ -1834,21 +1832,14 @@ function activateProfile(key) {
 // ════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════
-function initApp() {
-  const saved = localStorage.getItem(SESSION_KEY);
-  if(saved && PROFILES[saved]) {
-    activateProfile(saved);
-  } else {
-    document.getElementById('auth-screen').style.display = 'flex';
-    document.getElementById('app-wrap').style.display    = 'none';
-  }
+// No Firebase Auth needed — PIN auth is local, DB rules must allow access.
+const saved = localStorage.getItem(SESSION_KEY);
+if(saved && PROFILES[saved]) {
+  activateProfile(saved);
+} else {
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app-wrap').style.display    = 'none';
 }
-
-// Sign in anonymously so Firebase DB rules (auth != null) are satisfied,
-// then init — this ensures auth is ready before any DB reads fire.
-authBudzet.signInAnonymously()
-  .then(initApp)
-  .catch(initApp); // if anonymous auth disabled, still init (DB rules may be open)
 
 // Service Worker registration (PWA)
 if('serviceWorker' in navigator) {
