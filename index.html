@@ -285,6 +285,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .pin-key.empty{background:transparent;pointer-events:none}
 .auth-err{margin-top:16px;font-size:.72rem;color:var(--red);min-height:18px}
 
+/* ── CUSTOM MODAL (replaces confirm/prompt/alert — blocked on iOS PWA) ── */
+.modal-overlay{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.active{display:flex}
+.modal-box{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:20px;padding:24px;width:100%;max-width:310px}
+.modal-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;margin-bottom:6px}
+.modal-msg{font-size:.8rem;color:var(--muted);margin-bottom:16px;line-height:1.5}
+.modal-inp{width:100%;background:#111;border:1px solid #333;border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:1.2rem;color:var(--fg);outline:none;text-align:center;letter-spacing:6px;box-sizing:border-box;margin-bottom:6px}
+.modal-inp:focus{border-color:var(--accent)}
+.modal-inp-err{font-size:.7rem;color:var(--red);min-height:16px;margin-bottom:10px}
+.modal-btns{display:flex;gap:10px}
+.modal-btn{flex:1;padding:11px;border-radius:12px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer}
+.modal-btn.primary{background:var(--accent);color:#000}
+.modal-btn.secondary{background:#252525;color:var(--fg)}
+
 /* ── WHO ARE YOU PICKER ── */
 #who-screen{position:fixed;inset:0;z-index:998;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center}
 .who-title{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;margin-bottom:8px}
@@ -344,6 +358,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
 <!-- who-screen unused but kept for DOM compat -->
 <div id="who-screen" style="display:none"></div>
+
+<!-- ═══ MODAL (custom iOS-safe dialogs) ═══ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-msg" id="modal-msg"></div>
+    <input class="modal-inp" id="modal-inp" type="tel" inputmode="numeric" autocomplete="off">
+    <div class="modal-inp-err" id="modal-inp-err"></div>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" id="modal-cancel">Odustani</button>
+      <button class="modal-btn primary" id="modal-ok">OK</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ APP ═══ -->
 <div id="app-wrap">
@@ -1658,10 +1686,44 @@ function renderStednja() {
 // ════════════════════════════════════════════════
 //  AUTH — PIN login
 // ════════════════════════════════════════════════
-const PIN_ROOT   = 'budzet_cehic/_pins';
 const PIN_DEFAULTS = { nedim: '2501', azra: '1001' };
 const SESSION_KEY  = 'bud_active_profile';
 
+// PINs stored in localStorage — instant, offline-capable, no network needed
+function getPin(key) { return localStorage.getItem('bud_pin_' + key) || PIN_DEFAULTS[key]; }
+function setPin(key, pin) { localStorage.setItem('bud_pin_' + key, pin); }
+
+// ── Custom modal: replaces confirm/prompt/alert (all blocked on iOS PWA) ──
+let _modalResolve = null;
+function showModal({ title, msg = '', input = false, okLabel = 'OK', cancelLabel = null }) {
+  return new Promise(resolve => {
+    _modalResolve = resolve;
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-msg').textContent = msg;
+    document.getElementById('modal-inp-err').textContent = '';
+    const inp = document.getElementById('modal-inp');
+    inp.style.display = input ? 'block' : 'none';
+    inp.value = '';
+    const cancelBtn = document.getElementById('modal-cancel');
+    cancelBtn.style.display = cancelLabel ? '' : 'none';
+    cancelBtn.textContent = cancelLabel || 'Odustani';
+    document.getElementById('modal-ok').textContent = okLabel;
+    document.getElementById('modal-overlay').classList.add('active');
+    if(input) setTimeout(() => inp.focus(), 80);
+  });
+}
+document.getElementById('modal-ok').addEventListener('click', () => {
+  const inp = document.getElementById('modal-inp');
+  const val = inp.style.display !== 'none' ? inp.value : true;
+  document.getElementById('modal-overlay').classList.remove('active');
+  if(_modalResolve) { _modalResolve(val); _modalResolve = null; }
+});
+document.getElementById('modal-cancel').addEventListener('click', () => {
+  document.getElementById('modal-overlay').classList.remove('active');
+  if(_modalResolve) { _modalResolve(null); _modalResolve = null; }
+});
+
+// ── PIN keypad ──
 let pinBuffer = '';
 
 function pinRenderDots() {
@@ -1674,10 +1736,7 @@ function pinKey(digit) {
   pinBuffer += digit;
   pinRenderDots();
   document.getElementById('auth-err').textContent = '';
-  if(pinBuffer.length >= 4) {
-    // slight visual delay so last dot fills before checking
-    setTimeout(() => pinCheck(), 120);
-  }
+  if(pinBuffer.length >= 4) setTimeout(() => pinCheck(), 120);
 }
 
 function pinDel() {
@@ -1689,70 +1748,54 @@ function pinDel() {
 
 function pinCheck() {
   const entered = pinBuffer;
-  const checks = Object.keys(PIN_DEFAULTS).map(key =>
-    dbBudzet.ref(`${PIN_ROOT}/${key}`).once('value').then(snap => {
-      const stored = snap.exists() ? snap.val() : PIN_DEFAULTS[key];
-      return stored === entered ? key : null;
-    })
-  );
-  Promise.all(checks).then(results => {
-    const key = results.find(r => r !== null);
-    if(key) {
-      pinBuffer = '';
-      pinRenderDots();
-      localStorage.setItem(SESSION_KEY, key);
-      activateProfile(key);
-    } else {
-      pinBuffer = '';
-      pinRenderDots();
-      document.getElementById('auth-err').textContent = 'Pogrešan PIN.';
-      const disp = document.getElementById('pin-display');
-      disp.classList.add('shake');
-      setTimeout(() => disp.classList.remove('shake'), 450);
-    }
-  }).catch(() => {
-    // DB not reachable — fall back to hardcoded defaults
-    const key = Object.keys(PIN_DEFAULTS).find(k => PIN_DEFAULTS[k] === entered);
-    if(key) {
-      pinBuffer = '';
-      pinRenderDots();
-      localStorage.setItem(SESSION_KEY, key);
-      activateProfile(key);
-    } else {
-      pinBuffer = '';
-      pinRenderDots();
-      document.getElementById('auth-err').textContent = 'Pogrešan PIN.';
-    }
-  });
+  const key = Object.keys(PIN_DEFAULTS).find(k => getPin(k) === entered);
+  if(key) {
+    pinBuffer = '';
+    pinRenderDots();
+    localStorage.setItem(SESSION_KEY, key);
+    activateProfile(key);
+  } else {
+    pinBuffer = '';
+    pinRenderDots();
+    document.getElementById('auth-err').textContent = 'Pogrešan PIN.';
+    const disp = document.getElementById('pin-display');
+    disp.classList.add('shake');
+    setTimeout(() => disp.classList.remove('shake'), 450);
+  }
 }
 
 function signOutUser() {
-  if(!confirm('Zaključaj aplikaciju?')) return;
-  localStorage.removeItem(SESSION_KEY);
-  userProfile = null;
-  localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0 };
-  kupovinaExpenses = [];
-  if(budzetListener) { budzetListener(); budzetListener = null; }
-  pinBuffer = '';
-  pinRenderDots();
-  setSyncStatus('', '—');
-  document.getElementById('app-wrap').style.display   = 'none';
-  document.getElementById('auth-screen').style.display = 'flex';
+  showModal({ title: 'Zaključaj?', msg: 'Prijaviti se ponovo PIN-om.', okLabel: 'Zaključaj', cancelLabel: 'Odustani' })
+    .then(result => {
+      if(!result) return;
+      localStorage.removeItem(SESSION_KEY);
+      userProfile = null;
+      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0 };
+      kupovinaExpenses = [];
+      if(budzetListener) { budzetListener(); budzetListener = null; }
+      pinBuffer = '';
+      pinRenderDots();
+      setSyncStatus('', '—');
+      document.getElementById('app-wrap').style.display    = 'none';
+      document.getElementById('auth-screen').style.display = 'flex';
+    });
 }
 
-function showPinChange() {
-  const newPin = prompt('Novi PIN (min. 4 cifre):');
-  if(newPin === null) return;
-  if(!/^\d{4,}$/.test(newPin)) {
-    alert('PIN mora imati najmanje 4 cifre i samo brojeve.');
+async function showPinChange() {
+  const p1 = await showModal({ title: 'Novi PIN', msg: 'Unesi novi PIN (min. 4 cifre):', input: true, okLabel: 'Dalje', cancelLabel: 'Odustani' });
+  if(p1 === null) return;
+  if(!/^\d{4,}$/.test(p1)) {
+    await showModal({ title: 'Greška', msg: 'PIN mora imati najmanje 4 cifre i samo brojeve.', okLabel: 'OK' });
     return;
   }
-  const confirm2 = prompt('Ponovi novi PIN:');
-  if(newPin !== confirm2) { alert('PINovi se ne podudaraju.'); return; }
-  const key = userProfile.key;
-  dbBudzet.ref(`${PIN_ROOT}/${key}`).set(newPin)
-    .then(() => alert('PIN uspješno promijenjen!'))
-    .catch(err => alert('Greška: ' + err.message));
+  const p2 = await showModal({ title: 'Potvrdi PIN', msg: 'Ponovi novi PIN:', input: true, okLabel: 'Sačuvaj', cancelLabel: 'Odustani' });
+  if(p2 === null) return;
+  if(p1 !== p2) {
+    await showModal({ title: 'Greška', msg: 'PINovi se ne podudaraju.', okLabel: 'OK' });
+    return;
+  }
+  setPin(userProfile.key, p1);
+  await showModal({ title: 'Uspješno!', msg: 'PIN je promijenjen.', okLabel: 'OK' });
 }
 
 function activateProfile(key) {
