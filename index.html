@@ -1770,7 +1770,7 @@ function signOutUser() {
       userProfile = null;
       localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0 };
       kupovinaExpenses = [];
-      if(budzetListener) { budzetListener(); budzetListener = null; }
+      if(budzetListener) { dbBudzet.ref(budzetListener).off('value'); budzetListener = null; }
       pinBuffer = '';
       pinRenderDots();
       setSyncStatus('', '—');
