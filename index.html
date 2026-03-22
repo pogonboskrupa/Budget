@@ -272,14 +272,18 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .auth-logo{width:80px;height:80px;border-radius:22px;background:#181818;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:900;color:var(--accent);margin:0 auto 20px;letter-spacing:-2px}
 .auth-title{font-family:'Syne',sans-serif;font-size:1.7rem;font-weight:800;letter-spacing:-1px;margin-bottom:4px}
 .auth-title .ac{color:var(--accent)}
-.auth-sub{font-size:.78rem;color:var(--muted);margin-bottom:36px;line-height:1.5}
-.google-btn{display:flex;align-items:center;gap:12px;background:#fff;color:#1a1a1a;border:none;border-radius:12px;padding:13px 24px;font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .15s;width:100%;max-width:280px;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.4)}
-.google-btn:hover{background:#f0f0f0;transform:translateY(-1px)}
-.google-btn:active{transform:scale(.98)}
-.google-btn svg{flex-shrink:0}
-.auth-err{margin-top:14px;font-size:.72rem;color:var(--red);min-height:18px}
-.auth-divider{margin:20px 0;font-size:.65rem;color:var(--muted);display:flex;align-items:center;gap:10px;width:100%;max-width:280px}
-.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.auth-sub{font-size:.78rem;color:var(--muted);margin-bottom:28px;line-height:1.5}
+.pin-display{display:flex;gap:14px;justify-content:center;margin-bottom:32px}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid #444;background:transparent;transition:all .12s}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);transform:scale(1.15)}
+@keyframes pin-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.pin-display.shake{animation:pin-shake .4s ease}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto}
+.pin-key{display:flex;align-items:center;justify-content:center;height:62px;width:62px;border-radius:50%;border:none;background:#1e1e1e;color:var(--fg);font-family:'Syne',sans-serif;font-size:1.45rem;font-weight:700;cursor:pointer;transition:background .1s;-webkit-tap-highlight-color:transparent;margin:auto}
+.pin-key:active{background:#333}
+.pin-key.del{font-size:1rem;color:var(--muted)}
+.pin-key.empty{background:transparent;pointer-events:none}
+.auth-err{margin-top:16px;font-size:.72rem;color:var(--red);min-height:18px}
 
 /* ── WHO ARE YOU PICKER ── */
 #who-screen{position:fixed;inset:0;z-index:998;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center}
@@ -301,7 +305,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .user-chip:hover{border-color:var(--accent)}
 .uc-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:.72rem;font-weight:900}
 .uc-name{font-size:.65rem;font-weight:600;color:var(--text)}
-.uc-logout{font-size:.6rem;color:var(--muted);margin-left:2px}
+.uc-action{background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--muted);padding:2px 1px;line-height:1;-webkit-tap-highlight-color:transparent}
+.uc-action:hover{color:var(--fg)}
 
 /* ── APP WRAPPER ── */
 #app-wrap{display:none}
@@ -309,38 +314,36 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 </head>
 <body>
 
-<!-- ═══ LOGIN SCREEN ═══ -->
+<!-- ═══ PIN SCREEN ═══ -->
 <div id="auth-screen">
   <div class="auth-logo">B</div>
   <h1 class="auth-title"><span class="ac">Budžet</span> Ćehić</h1>
-  <p class="auth-sub">Prijavi se sa Google računom<br>da pristupiš svom budžetu</p>
-  <button class="google-btn" id="google-signin-btn" onclick="signInGoogle()">
-    <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-3.59-13.46-8.83l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-    Prijavi se s Googleom
-  </button>
-  <button class="google-btn" id="auth-reload-btn" onclick="location.reload()" style="display:none;margin-top:10px;background:#1a1a1a;color:#fff;border:1px solid #333">
-    ↩ Već sam se prijavio — osvježi
-  </button>
+  <p class="auth-sub">Unesi PIN</p>
+  <div class="pin-display" id="pin-display">
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-key" onclick="pinKey('1')">1</button>
+    <button class="pin-key" onclick="pinKey('2')">2</button>
+    <button class="pin-key" onclick="pinKey('3')">3</button>
+    <button class="pin-key" onclick="pinKey('4')">4</button>
+    <button class="pin-key" onclick="pinKey('5')">5</button>
+    <button class="pin-key" onclick="pinKey('6')">6</button>
+    <button class="pin-key" onclick="pinKey('7')">7</button>
+    <button class="pin-key" onclick="pinKey('8')">8</button>
+    <button class="pin-key" onclick="pinKey('9')">9</button>
+    <div class="pin-key empty"></div>
+    <button class="pin-key" onclick="pinKey('0')">0</button>
+    <button class="pin-key del" onclick="pinDel()">⌫</button>
+  </div>
   <div class="auth-err" id="auth-err"></div>
 </div>
 
-<!-- ═══ WHO ARE YOU SCREEN ═══ -->
-<div id="who-screen">
-  <div class="who-title">Ko si ti?</div>
-  <p class="who-sub">Ovo je prvi put — odaberi svoj profil.<br>Ovo se pamti za tvoj Google račun.</p>
-  <div class="who-cards">
-    <div class="who-card nedim" onclick="claimProfile('nedim')">
-      <div class="who-avatar n">N</div>
-      <div class="who-name">Nedim</div>
-      <div class="who-note">Nedim Ćehić</div>
-    </div>
-    <div class="who-card azra" onclick="claimProfile('azra')">
-      <div class="who-avatar a">A</div>
-      <div class="who-name">Azra</div>
-      <div class="who-note">Azra Ćehić</div>
-    </div>
-  </div>
-</div>
+<!-- who-screen unused but kept for DOM compat -->
+<div id="who-screen" style="display:none"></div>
 
 <!-- ═══ APP ═══ -->
 <div id="app-wrap">
@@ -355,10 +358,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <div class="sync-dot" id="sync-dot"></div>
       <span id="sync-label">—</span>
     </div>
-    <div class="user-chip" onclick="signOutUser()" title="Odjava">
+    <div class="user-chip" id="user-chip">
       <div class="uc-av" id="uc-av" style="background:var(--nedim);color:#000">N</div>
       <span class="uc-name" id="uc-name">Nedim</span>
-      <span class="uc-logout">↩</span>
+      <button class="uc-action" onclick="showPinChange()" title="Promijeni PIN">🔑</button>
+      <button class="uc-action" onclick="signOutUser()" title="Zaključaj">↩</button>
     </div>
   </div>
 </div>
@@ -759,9 +763,8 @@ const dbKupovina  = kupovinaApp.database();
 const authBudzet  = budzetApp.auth();
 
 // ROOT_BUD is set dynamically after login: 'budzet_cehic/nedim' or 'budzet_cehic/azra'
-let ROOT_BUD = 'budzet_cehic/nedim'; // fallback, overwritten on auth
+let ROOT_BUD = 'budzet_cehic/nedim'; // fallback, overwritten on login
 const ROOT_KUP = 'porodica_cehic';
-const ROOT_MAP = 'budzet_cehic/_userMap'; // uid → profile key
 
 const PROFILES = {
   nedim: { name: 'Nedim', key: 'nedim', buyer: 'Nedim', color: '#c8f535', textColor: '#000', initial: 'N' },
@@ -1653,60 +1656,103 @@ function renderStednja() {
 }
 
 // ════════════════════════════════════════════════
-//  AUTH — Google Sign-In + profile mapping
+//  AUTH — PIN login
 // ════════════════════════════════════════════════
-function isIOSStandalone() {
-  // Running as installed PWA on iPhone/iPad
-  return window.navigator.standalone === true;
+const PIN_ROOT   = 'budzet_cehic/_pins';
+const PIN_DEFAULTS = { nedim: '2501', azra: '1001' };
+const SESSION_KEY  = 'bud_active_profile';
+
+let pinBuffer = '';
+
+function pinRenderDots() {
+  const dots = document.querySelectorAll('#pin-display .pin-dot');
+  dots.forEach((d, i) => d.classList.toggle('filled', i < pinBuffer.length));
 }
 
-function signInGoogle() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  const errEl    = document.getElementById('auth-err');
-  errEl.textContent = '';
-
-  if(isIOSStandalone()) {
-    // In standalone PWA on iOS, window.open() always opens Safari (different process).
-    // Sign in there — storage is shared (iOS 16+), so the PWA will pick it up on reload.
-    window.open(window.location.href, '_blank');
-    errEl.textContent = 'Safari se otvorio — prijavi se tamo s Googleom, pa se vrati ovdje i tapni ↩.';
-    document.getElementById('auth-reload-btn').style.display = 'flex';
-    return;
+function pinKey(digit) {
+  if(pinBuffer.length >= 8) return;
+  pinBuffer += digit;
+  pinRenderDots();
+  document.getElementById('auth-err').textContent = '';
+  if(pinBuffer.length >= 4) {
+    // slight visual delay so last dot fills before checking
+    setTimeout(() => pinCheck(), 120);
   }
+}
 
-  authBudzet.signInWithPopup(provider).catch(err => {
-    if(err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
-      errEl.textContent = 'Popup blokiran. Pokušaj ponovo.';
+function pinDel() {
+  if(!pinBuffer) return;
+  pinBuffer = pinBuffer.slice(0, -1);
+  pinRenderDots();
+  document.getElementById('auth-err').textContent = '';
+}
+
+function pinCheck() {
+  const entered = pinBuffer;
+  const checks = Object.keys(PIN_DEFAULTS).map(key =>
+    dbBudzet.ref(`${PIN_ROOT}/${key}`).once('value').then(snap => {
+      const stored = snap.exists() ? snap.val() : PIN_DEFAULTS[key];
+      return stored === entered ? key : null;
+    })
+  );
+  Promise.all(checks).then(results => {
+    const key = results.find(r => r !== null);
+    if(key) {
+      pinBuffer = '';
+      pinRenderDots();
+      localStorage.setItem(SESSION_KEY, key);
+      activateProfile(key);
     } else {
-      errEl.textContent = 'Greška: ' + err.message;
+      pinBuffer = '';
+      pinRenderDots();
+      document.getElementById('auth-err').textContent = 'Pogrešan PIN.';
+      const disp = document.getElementById('pin-display');
+      disp.classList.add('shake');
+      setTimeout(() => disp.classList.remove('shake'), 450);
+    }
+  }).catch(() => {
+    // DB not reachable — fall back to hardcoded defaults
+    const key = Object.keys(PIN_DEFAULTS).find(k => PIN_DEFAULTS[k] === entered);
+    if(key) {
+      pinBuffer = '';
+      pinRenderDots();
+      localStorage.setItem(SESSION_KEY, key);
+      activateProfile(key);
+    } else {
+      pinBuffer = '';
+      pinRenderDots();
+      document.getElementById('auth-err').textContent = 'Pogrešan PIN.';
     }
   });
 }
 
 function signOutUser() {
-  if(!confirm('Odjavi se?')) return;
-  authBudzet.signOut().then(() => {
-    userProfile = null;
-    localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0 };
-    kupovinaExpenses = [];
-    document.getElementById('app-wrap').style.display = 'none';
-    document.getElementById('auth-screen').style.display = 'flex';
-    document.getElementById('who-screen').style.display = 'none';
-    setSyncStatus('', '—');
-  });
+  if(!confirm('Zaključaj aplikaciju?')) return;
+  localStorage.removeItem(SESSION_KEY);
+  userProfile = null;
+  localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0 };
+  kupovinaExpenses = [];
+  if(budzetListener) { budzetListener(); budzetListener = null; }
+  pinBuffer = '';
+  pinRenderDots();
+  setSyncStatus('', '—');
+  document.getElementById('app-wrap').style.display   = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
 }
 
-// Called when user picks profile on first login
-function claimProfile(key) {
-  const uid = authBudzet.currentUser?.uid;
-  if(!uid) return;
-  // Save mapping: uid → profile key
-  dbBudzet.ref(`${ROOT_MAP}/${uid}`).set(key).then(() => {
-    activateProfile(key);
-  }).catch(err => {
-    console.error('Profile claim error:', err);
-    activateProfile(key); // still activate locally
-  });
+function showPinChange() {
+  const newPin = prompt('Novi PIN (min. 4 cifre):');
+  if(newPin === null) return;
+  if(!/^\d{4,}$/.test(newPin)) {
+    alert('PIN mora imati najmanje 4 cifre i samo brojeve.');
+    return;
+  }
+  const confirm2 = prompt('Ponovi novi PIN:');
+  if(newPin !== confirm2) { alert('PINovi se ne podudaraju.'); return; }
+  const key = userProfile.key;
+  dbBudzet.ref(`${PIN_ROOT}/${key}`).set(newPin)
+    .then(() => alert('PIN uspješno promijenjen!'))
+    .catch(err => alert('Greška: ' + err.message));
 }
 
 function activateProfile(key) {
@@ -1742,40 +1788,22 @@ function activateProfile(key) {
   loadKupovinaExpenses();
 }
 
-// Firebase Auth state observer
-authBudzet.onAuthStateChanged(user => {
-  if(!user) {
-    // Not logged in → show login screen
-    document.getElementById('auth-screen').style.display = 'flex';
-    document.getElementById('who-screen').style.display  = 'none';
-    document.getElementById('app-wrap').style.display    = 'none';
-    return;
-  }
-  // Logged in — look up profile mapping
-  dbBudzet.ref(`${ROOT_MAP}/${user.uid}`).once('value').then(snap => {
-    if(snap.exists()) {
-      const key = snap.val();
-      if(PROFILES[key]) {
-        activateProfile(key);
-      } else {
-        showWhoScreen();
-      }
-    } else {
-      showWhoScreen();
-    }
-  }).catch(() => showWhoScreen());
-});
-
-function showWhoScreen() {
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('who-screen').style.display  = 'flex';
-  document.getElementById('app-wrap').style.display    = 'none';
-}
-
 // ════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════
-// Auth state observer handles startup — no manual loadBudzet() call here.
+// Sign in anonymously so Firebase DB rules (auth != null) are satisfied
+authBudzet.signInAnonymously().catch(() => {/* rules may be open — continue anyway */});
+
+// Restore session from localStorage
+(function() {
+  const saved = localStorage.getItem(SESSION_KEY);
+  if(saved && PROFILES[saved]) {
+    activateProfile(saved);
+  } else {
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app-wrap').style.display    = 'none';
+  }
+})();
 
 // Service Worker registration (PWA)
 if('serviceWorker' in navigator) {
