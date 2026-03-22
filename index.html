@@ -16,6 +16,7 @@
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
 :root{
@@ -265,21 +266,97 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .ts-label{font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:2px}
 .ts-amt{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--accent);letter-spacing:-.5px}
 .ts-icon{font-size:2rem;opacity:.6}
+
+/* ── AUTH / LOGIN ── */
+#auth-screen{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center}
+.auth-logo{width:80px;height:80px;border-radius:22px;background:#181818;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:900;color:var(--accent);margin:0 auto 20px;letter-spacing:-2px}
+.auth-title{font-family:'Syne',sans-serif;font-size:1.7rem;font-weight:800;letter-spacing:-1px;margin-bottom:4px}
+.auth-title .ac{color:var(--accent)}
+.auth-sub{font-size:.78rem;color:var(--muted);margin-bottom:36px;line-height:1.5}
+.google-btn{display:flex;align-items:center;gap:12px;background:#fff;color:#1a1a1a;border:none;border-radius:12px;padding:13px 24px;font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .15s;width:100%;max-width:280px;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.4)}
+.google-btn:hover{background:#f0f0f0;transform:translateY(-1px)}
+.google-btn:active{transform:scale(.98)}
+.google-btn svg{flex-shrink:0}
+.auth-err{margin-top:14px;font-size:.72rem;color:var(--red);min-height:18px}
+.auth-divider{margin:20px 0;font-size:.65rem;color:var(--muted);display:flex;align-items:center;gap:10px;width:100%;max-width:280px}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── WHO ARE YOU PICKER ── */
+#who-screen{position:fixed;inset:0;z-index:998;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center}
+.who-title{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;margin-bottom:8px}
+.who-sub{font-size:.75rem;color:var(--muted);margin-bottom:32px}
+.who-cards{display:flex;gap:14px;width:100%;max-width:320px}
+.who-card{flex:1;background:var(--surface);border:2px solid var(--border);border-radius:18px;padding:24px 14px;cursor:pointer;transition:all .2s;text-align:center}
+.who-card:hover{transform:translateY(-2px)}
+.who-card.nedim:hover,.who-card.nedim:focus{border-color:var(--nedim);background:rgba(200,245,53,.06)}
+.who-card.azra:hover,.who-card.azra:focus{border-color:var(--azra);background:rgba(255,107,157,.06)}
+.who-avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:900;margin:0 auto 10px}
+.who-avatar.n{background:var(--nedim);color:#000}
+.who-avatar.a{background:var(--azra);color:#fff}
+.who-name{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800}
+.who-note{font-size:.65rem;color:var(--muted);margin-top:3px}
+
+/* ── USER CHIP IN HEADER ── */
+.user-chip{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 4px;cursor:pointer;transition:border-color .2s}
+.user-chip:hover{border-color:var(--accent)}
+.uc-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:.72rem;font-weight:900}
+.uc-name{font-size:.65rem;font-weight:600;color:var(--text)}
+.uc-logout{font-size:.6rem;color:var(--muted);margin-left:2px}
+
+/* ── APP WRAPPER ── */
+#app-wrap{display:none}
 </style>
 </head>
 <body>
 
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="auth-screen">
+  <div class="auth-logo">B</div>
+  <h1 class="auth-title"><span class="ac">Budžet</span> Ćehić</h1>
+  <p class="auth-sub">Prijavi se sa Google računom<br>da pristupiš svom budžetu</p>
+  <button class="google-btn" onclick="signInGoogle()">
+    <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-3.59-13.46-8.83l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Prijavi se s Googleom
+  </button>
+  <div class="auth-err" id="auth-err"></div>
+</div>
+
+<!-- ═══ WHO ARE YOU SCREEN ═══ -->
+<div id="who-screen">
+  <div class="who-title">Ko si ti?</div>
+  <p class="who-sub">Ovo je prvi put — odaberi svoj profil.<br>Ovo se pamti za tvoj Google račun.</p>
+  <div class="who-cards">
+    <div class="who-card nedim" onclick="claimProfile('nedim')">
+      <div class="who-avatar n">N</div>
+      <div class="who-name">Nedim</div>
+      <div class="who-note">Nedim Ćehić</div>
+    </div>
+    <div class="who-card azra" onclick="claimProfile('azra')">
+      <div class="who-avatar a">A</div>
+      <div class="who-name">Azra</div>
+      <div class="who-note">Azra Ćehić</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app-wrap">
+
 <div class="header">
   <h1>
     <span class="ac">Budžet</span>
-    <span class="fam">Nedim Ćehić</span>
+    <span class="fam" id="header-fam">Ćehić</span>
   </h1>
   <div class="header-right">
     <div class="sync-pill">
       <div class="sync-dot" id="sync-dot"></div>
       <span id="sync-label">—</span>
     </div>
-    <div class="hav">N</div>
+    <div class="user-chip" onclick="signOutUser()" title="Odjava">
+      <div class="uc-av" id="uc-av" style="background:var(--nedim);color:#000">N</div>
+      <span class="uc-name" id="uc-name">Nedim</span>
+      <span class="uc-logout">↩</span>
+    </div>
   </div>
 </div>
 
@@ -642,6 +719,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
 <div class="toast" id="toast"></div>
 
+</div><!-- /#app-wrap -->
+
 <script>
 // ════════════════════════════════════════════════
 //  FIREBASE — BUDŽET (novi projekat)
@@ -674,9 +753,20 @@ const kupovinaApp  = firebase.initializeApp(KUPOVINA_CONFIG, 'kupovina');
 
 const dbBudzet    = budzetApp.database();
 const dbKupovina  = kupovinaApp.database();
+const authBudzet  = budzetApp.auth();
 
-const ROOT_BUD = 'budzet_cehic';
+// ROOT_BUD is set dynamically after login: 'budzet_cehic/nedim' or 'budzet_cehic/azra'
+let ROOT_BUD = 'budzet_cehic/nedim'; // fallback, overwritten on auth
 const ROOT_KUP = 'porodica_cehic';
+const ROOT_MAP = 'budzet_cehic/_userMap'; // uid → profile key
+
+const PROFILES = {
+  nedim: { name: 'Nedim', key: 'nedim', buyer: 'Nedim', color: '#c8f535', textColor: '#000', initial: 'N' },
+  azra:  { name: 'Azra',  key: 'azra',  buyer: 'Azra',  color: '#ff6b9d', textColor: '#fff', initial: 'A' }
+};
+
+let userProfile  = null;  // active PROFILES entry
+let budzetListener = null; // so we can detach before re-attaching on login
 
 // ════════════════════════════════════════════════
 //  SYNC STATUS
@@ -1293,7 +1383,13 @@ function deleteBudzet(collection, id) {
 }
 
 function loadBudzet() {
+  // Detach any existing listener before re-subscribing (user switch)
+  if(budzetListener) {
+    dbBudzet.ref(budzetListener).off('value');
+    budzetListener = null;
+  }
   setSyncStatus('syncing', 'Učitava...');
+  budzetListener = ROOT_BUD;
   dbBudzet.ref(ROOT_BUD).on('value', snap => {
     if(snap.exists()) {
       const d = snap.val();
@@ -1302,6 +1398,8 @@ function loadBudzet() {
       localData.fixedExpenses = d.fixedExpenses ? Object.values(d.fixedExpenses) : [];
       localData.savings       = d.savings       ? Object.values(d.savings)       : [];
       localData.savingsGoal   = d.savingsGoal   || 0;
+    } else {
+      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0 };
     }
     setSyncStatus('connected', 'Synced');
     renderAll();
@@ -1322,7 +1420,7 @@ function loadKupovinaExpenses() {
       snap.forEach(child => {
         const h = child.val();
         // Only include Nedim's shopping sessions
-        if(h.buyer === 'Nedim' && h.total > 0) {
+        if(h.buyer === (userProfile ? userProfile.buyer : 'Nedim') && h.total > 0) {
           const dateStr = h.date ? h.date.slice(0,10) : '';
           kupList.push({
             id:        h.id || child.key,
@@ -1349,7 +1447,7 @@ function loadKupovinaExpenses() {
     if(snap.exists()) {
       snap.forEach(child => {
         const r = child.val();
-        if(r.buyer === 'Nedim' && r.amount > 0) {
+        if(r.buyer === (userProfile ? userProfile.buyer : 'Nedim') && r.amount > 0) {
           const dateStr = r.date ? r.date.slice(0,10) : '';
           kupovinaExpenses.push({
             id:        r.id || child.key,
@@ -1552,14 +1650,108 @@ function renderStednja() {
 }
 
 // ════════════════════════════════════════════════
+//  AUTH — Google Sign-In + profile mapping
+// ════════════════════════════════════════════════
+function signInGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  authBudzet.signInWithPopup(provider).catch(err => {
+    document.getElementById('auth-err').textContent = 'Greška: ' + err.message;
+  });
+}
+
+function signOutUser() {
+  if(!confirm('Odjavi se?')) return;
+  authBudzet.signOut().then(() => {
+    userProfile = null;
+    localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0 };
+    kupovinaExpenses = [];
+    document.getElementById('app-wrap').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('who-screen').style.display = 'none';
+    setSyncStatus('', '—');
+  });
+}
+
+// Called when user picks profile on first login
+function claimProfile(key) {
+  const uid = authBudzet.currentUser?.uid;
+  if(!uid) return;
+  // Save mapping: uid → profile key
+  dbBudzet.ref(`${ROOT_MAP}/${uid}`).set(key).then(() => {
+    activateProfile(key);
+  }).catch(err => {
+    console.error('Profile claim error:', err);
+    activateProfile(key); // still activate locally
+  });
+}
+
+function activateProfile(key) {
+  userProfile = PROFILES[key];
+  ROOT_BUD    = `budzet_cehic/${key}`;
+
+  // Update UI for this user
+  const av   = document.getElementById('uc-av');
+  const name = document.getElementById('uc-name');
+  const fam  = document.getElementById('header-fam');
+  if(av)   { av.textContent = userProfile.initial; av.style.background = userProfile.color; av.style.color = userProfile.textColor; }
+  if(name) name.textContent = userProfile.name;
+  if(fam)  fam.textContent  = userProfile.name + ' Ćehić';
+
+  // Set CSS accent for Azra
+  if(key === 'azra') {
+    document.documentElement.style.setProperty('--hav-color', 'var(--azra)');
+  }
+
+  // Show app, hide screens
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('who-screen').style.display  = 'none';
+  document.getElementById('app-wrap').style.display    = 'block';
+
+  // Init date fields
+  document.getElementById('inc-date').value = todayStr();
+  document.getElementById('exp-date').value = todayStr();
+  document.getElementById('sav-date').value = todayStr();
+  setSyncStatus('syncing', 'Spajam...');
+
+  // Load data for this user
+  loadBudzet();
+  loadKupovinaExpenses();
+}
+
+// Firebase Auth state observer
+authBudzet.onAuthStateChanged(user => {
+  if(!user) {
+    // Not logged in → show login screen
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('who-screen').style.display  = 'none';
+    document.getElementById('app-wrap').style.display    = 'none';
+    return;
+  }
+  // Logged in — look up profile mapping
+  dbBudzet.ref(`${ROOT_MAP}/${user.uid}`).once('value').then(snap => {
+    if(snap.exists()) {
+      const key = snap.val();
+      if(PROFILES[key]) {
+        activateProfile(key);
+      } else {
+        showWhoScreen();
+      }
+    } else {
+      showWhoScreen();
+    }
+  }).catch(() => showWhoScreen());
+});
+
+function showWhoScreen() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('who-screen').style.display  = 'flex';
+  document.getElementById('app-wrap').style.display    = 'none';
+}
+
+// ════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════
-document.getElementById('inc-date').value = todayStr();
-document.getElementById('exp-date').value = todayStr();
-setSyncStatus('syncing', 'Spajam...');
-
-loadBudzet();
-loadKupovinaExpenses();
+// Auth state observer handles startup — no manual loadBudzet() call here.
 
 // Service Worker registration (PWA)
 if('serviceWorker' in navigator) {
