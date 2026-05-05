@@ -293,6 +293,30 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .bill-action-btn.pay-btn:active{opacity:.8}
 .bill-action-btn.unpay-btn{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2);font-size:.6rem}
 .bill-expand{padding:10px 13px 12px;border-top:1px solid var(--border)}
+.bill-del-custom{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.7rem;padding:2px 4px;border-radius:4px;line-height:1;transition:color .15s}
+.bill-del-custom:hover{color:var(--red)}
+.bills-recap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:10px}
+.recap-hdr{font-family:'Syne',sans-serif;font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px}
+.recap-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.recap-row:last-child{border-bottom:none}
+.recap-icon-name{display:flex;align-items:center;gap:7px;font-size:.76rem;flex:1;min-width:0}
+.recap-icon-name span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recap-paid-amt{font-family:'Syne',sans-serif;font-size:.76rem;font-weight:700;color:var(--green);flex-shrink:0;text-align:right}
+.recap-no-amt{font-size:.7rem;color:var(--muted);flex-shrink:0}
+.recap-unpaid-name{font-size:.74rem;color:var(--muted)}
+.recap-total-row{display:flex;align-items:center;justify-content:space-between;padding-top:9px;margin-top:6px;border-top:1px solid var(--border)}
+.recap-total-label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.recap-total-amt{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:var(--accent)}
+.year-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.year-row:last-child{border-bottom:none}
+.yr-left{flex:1}
+.yr-month{font-size:.77rem;font-weight:600}
+.yr-count{font-size:.59rem;color:var(--muted);margin-top:1px}
+.yr-amt{font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--accent)}
+.yr-amt.zero{color:var(--muted)}
+.yr-grand{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.yr-grand-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.yr-grand-amt{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:var(--accent)}
 
 .total-saved-card{background:linear-gradient(135deg,#1a2a04,#111a00);border:1px solid var(--accent);border-radius:14px;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .ts-label{font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:2px}
@@ -820,6 +844,28 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
 
   <div id="bills-list"></div>
+
+  <!-- Dodaj vlastiti račun -->
+  <div class="form-section">
+    <div class="section-title"><span class="dot blue"></span>Dodaj vlastiti račun</div>
+    <div class="row2">
+      <div class="field">
+        <label>Naziv računa</label>
+        <input type="text" id="cb-name" placeholder="npr. Gas, Kirija..." autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Ikonica (emoji)</label>
+        <input type="text" id="cb-icon" placeholder="🔥" maxlength="4" style="text-align:center;font-size:1.3rem">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addCustomBill()">+ Dodaj račun</button>
+  </div>
+
+  <!-- Mjesečna rekapitulacija -->
+  <div class="bills-recap" id="bills-monthly-recap"></div>
+
+  <!-- Godišnja rekapitulacija -->
+  <div class="bills-recap" id="bills-yearly-recap"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -890,7 +936,8 @@ let localData = {
   fixedExpenses: [],
   savings: [],
   savingsGoal: 0,
-  bills: {}
+  bills: {},
+  customBills: []
 };
 
 // Kupovina purchases fetched from Kupovina Firebase (read-only)
@@ -1504,8 +1551,9 @@ function loadBudzet() {
       localData.savings       = d.savings       ? Object.values(d.savings)       : [];
       localData.savingsGoal   = d.savingsGoal   || 0;
       localData.bills         = d.bills         || {};
+      localData.customBills   = d.customBills   ? Object.values(d.customBills) : [];
     } else {
-      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{} };
+      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{}, customBills:[] };
     }
     setSyncStatus('connected', 'Synced');
     renderAll();
@@ -1770,8 +1818,41 @@ const BILLS = [
 
 let expandedBillId = null;
 
+function getAllBills() {
+  return [...BILLS, ...(localData.customBills || [])];
+}
+
 function getBillsForMonth(mk) {
   return (localData.bills || {})[mk] || {};
+}
+
+function addCustomBill() {
+  const name = (document.getElementById('cb-name') || {}).value?.trim();
+  const icon = (document.getElementById('cb-icon') || {}).value?.trim() || '📋';
+  if(!name) { toast('⚠️ Unesite naziv računa'); return; }
+
+  const id    = 'custom_' + Date.now();
+  const entry = { id, name, icon, dueDay: 18 };
+  if(!localData.customBills) localData.customBills = [];
+  localData.customBills.push(entry);
+
+  setSyncStatus('syncing', 'Snima...');
+  dbBudzet.ref(`${ROOT_BUD}/customBills/${id}`).set(entry)
+    .then(() => setSyncStatus('connected', 'Synced'))
+    .catch(err => { console.error(err); setSyncStatus('error', 'Greška'); });
+
+  document.getElementById('cb-name').value = '';
+  document.getElementById('cb-icon').value = '';
+  toast('➕ Račun dodan!');
+  renderBills();
+}
+
+function deleteCustomBill(id) {
+  localData.customBills = (localData.customBills || []).filter(b => b.id !== id);
+  dbBudzet.ref(`${ROOT_BUD}/customBills/${id}`).remove()
+    .catch(err => console.error(err));
+  toast('🗑️ Račun obrisan');
+  renderBills();
 }
 
 function markBillPaid(billId) {
@@ -1781,6 +1862,7 @@ function markBillPaid(billId) {
   const amtVal  = parseFloat(amtRaw) || 0;
 
   if(!dateVal) { toast('⚠️ Odaberite datum plaćanja'); return; }
+  if(!amtVal || amtVal <= 0) { toast('⚠️ Unesite iznos plaćanja'); return; }
 
   if(!localData.bills)     localData.bills     = {};
   if(!localData.bills[mk]) localData.bills[mk] = {};
@@ -1793,7 +1875,7 @@ function markBillPaid(billId) {
     .catch(err => { console.error(err); setSyncStatus('error', 'Greška'); });
 
   expandedBillId = null;
-  toast('✅ Račun označen kao plaćen!');
+  toast('✅ Račun plaćen!');
   renderBills();
 }
 
@@ -1818,11 +1900,12 @@ function renderBills() {
   const cont = document.getElementById('bills-list');
   if(!cont) return;
 
-  const mk        = curKey();
-  const today     = new Date();
-  const todayDay  = today.getDate();
-  const isCurMonth = (mk === monthKey(today.getFullYear(), today.getMonth()));
-  const billsData = getBillsForMonth(mk);
+  const mk          = curKey();
+  const today       = new Date();
+  const todayDay    = today.getDate();
+  const isCurMonth  = (mk === monthKey(today.getFullYear(), today.getMonth()));
+  const billsData   = getBillsForMonth(mk);
+  const allBills    = getAllBills();
 
   // — Alarm banner —
   const alarmEl    = document.getElementById('bills-alarm');
@@ -1831,7 +1914,7 @@ function renderBills() {
   const alarmSub   = document.getElementById('bills-alarm-sub');
 
   if(alarmEl) {
-    const unpaid  = BILLS.filter(b => !billsData[b.id]);
+    const unpaid  = allBills.filter(b => !billsData[b.id]);
     const overdue = unpaid.filter(b => isCurMonth && todayDay > b.dueDay);
     const warning = unpaid.filter(b => isCurMonth && todayDay >= b.dueDay - 3 && todayDay <= b.dueDay);
     const paidAll = unpaid.length === 0;
@@ -1846,7 +1929,7 @@ function renderBills() {
       alarmEl.style.display = 'flex';
       alarmEl.className = 'alarm-banner overdue';
       alarmIcon.textContent  = '🔴';
-      alarmTitle.textContent = `Kasno plaćanje! ${overdue.length} ${overdue.length === 1 ? 'račun nije plaćen' : 'računa nisu plaćeni'}!`;
+      alarmTitle.textContent = `Kasno! ${overdue.length} ${overdue.length === 1 ? 'račun nije plaćen' : 'računa nisu plaćeni'}`;
       alarmSub.textContent   = overdue.map(b => b.name).join(', ') + ' — rok je bio 18. u mj.';
     } else if(warning.length > 0) {
       alarmEl.style.display = 'flex';
@@ -1868,22 +1951,23 @@ function renderBills() {
   // — Stats bar —
   const statEl = document.getElementById('bills-stat');
   if(statEl) {
-    const paidCount = BILLS.filter(b => billsData[b.id]).length;
-    statEl.textContent = `${paidCount} / ${BILLS.length} plaćeno`;
-    statEl.style.color = paidCount === BILLS.length ? 'var(--green)'
-                       : paidCount > 0              ? 'var(--yellow)'
-                       :                              'var(--muted)';
+    const paidCount = allBills.filter(b => billsData[b.id]).length;
+    statEl.textContent = `${paidCount} / ${allBills.length} plaćeno`;
+    statEl.style.color = paidCount === allBills.length ? 'var(--green)'
+                       : paidCount > 0                 ? 'var(--yellow)'
+                       :                                 'var(--muted)';
   }
 
   // — Bill cards —
-  cont.innerHTML = BILLS.map(bill => {
+  cont.innerHTML = allBills.map(bill => {
     const payment    = billsData[bill.id];
     const isPaid     = !!payment;
     const isExpanded = expandedBillId === bill.id;
+    const isCustom   = bill.id.startsWith('custom_');
 
-    let cardCls  = 'bill-card';
-    let stsCls   = 'ok-s';
-    let stsText  = 'Čeka plaćanje';
+    let cardCls = 'bill-card';
+    let stsCls  = 'ok-s';
+    let stsText = 'Čeka plaćanje';
 
     if(isPaid) {
       cardCls += ' paid';
@@ -1891,7 +1975,7 @@ function renderBills() {
       stsText = '✅ Plaćeno';
     } else if(isCurMonth) {
       if(todayDay > 18)       { cardCls += ' overdue'; stsCls = 'overdue-s'; stsText = '🔴 Kasno!'; }
-      else if(todayDay >= 15) { cardCls += ' warn';    stsCls = 'warn-s';    stsText = '⚠️ Uskoro ističe'; }
+      else if(todayDay >= 15) { cardCls += ' warn';    stsCls = 'warn-s';    stsText = '⚠️ Uskoro'; }
     }
 
     const expandHtml = (isExpanded && !isPaid) ? `
@@ -1902,7 +1986,7 @@ function renderBills() {
             <input type="date" id="bill-date-${bill.id}" value="${todayStr()}">
           </div>
           <div class="field">
-            <label>Iznos (KM) — opciono</label>
+            <label>Iznos (KM)</label>
             <input type="number" id="bill-amt-${bill.id}" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
           </div>
         </div>
@@ -1912,7 +1996,7 @@ function renderBills() {
     const rightHtml = isPaid ? `
       <div class="bill-right">
         <div class="bill-status paid-s">✅ Plaćeno</div>
-        ${payment.amount > 0 ? `<div class="bill-amt-paid">${fmt(payment.amount)}</div>` : ''}
+        <div class="bill-amt-paid">${fmt(payment.amount)}</div>
         <button class="bill-action-btn unpay-btn" onclick="unmarkBillPaid('${bill.id}')">Poništi</button>
       </div>` : `
       <div class="bill-right">
@@ -1927,7 +2011,7 @@ function renderBills() {
         <div class="bill-main">
           <div class="bill-ic">${bill.icon}</div>
           <div class="bill-info">
-            <div class="bill-name">${bill.name}</div>
+            <div class="bill-name">${esc(bill.name)}${isCustom ? ` <button class="bill-del-custom" onclick="deleteCustomBill('${bill.id}')" title="Obriši račun">✕</button>` : ''}</div>
             <div class="bill-sub">${isPaid ? `Plaćeno: ${payment.paidDate}` : `Rok: do 18. u mjesecu`}</div>
           </div>
           ${rightHtml}
@@ -1935,6 +2019,85 @@ function renderBills() {
         ${expandHtml}
       </div>`;
   }).join('');
+
+  // — Mjesečna rekapitulacija —
+  renderMonthlyRecap(mk, billsData, allBills);
+
+  // — Godišnja rekapitulacija —
+  renderYearlyRecap(curYear);
+}
+
+function renderMonthlyRecap(mk, billsData, allBills) {
+  const el = document.getElementById('bills-monthly-recap');
+  if(!el) return;
+
+  const paid   = allBills.filter(b => billsData[b.id]);
+  const unpaid = allBills.filter(b => !billsData[b.id]);
+  const total  = paid.reduce((s, b) => s + (billsData[b.id].amount || 0), 0);
+
+  if(!paid.length && !unpaid.length) { el.style.display = 'none'; return; }
+  el.style.display = '';
+
+  const paidRows = paid.map(b => {
+    const amt = billsData[b.id].amount || 0;
+    return `<div class="recap-row">
+      <div class="recap-icon-name">${b.icon} <span>${esc(b.name)}</span></div>
+      <div class="recap-paid-amt">${fmt(amt)}</div>
+    </div>`;
+  }).join('');
+
+  const unpaidRows = unpaid.length ? `
+    <div style="margin-top:8px;margin-bottom:4px;font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Nije plaćeno</div>
+    ${unpaid.map(b => `<div class="recap-row">
+      <div class="recap-icon-name" style="color:var(--muted)">${b.icon} <span>${esc(b.name)}</span></div>
+      <div class="recap-no-amt">—</div>
+    </div>`).join('')}` : '';
+
+  el.innerHTML = `
+    <div class="recap-hdr">📋 Rekapitulacija — ${MONTHS[curMonth]} ${curYear}</div>
+    ${paidRows}
+    ${unpaidRows}
+    <div class="recap-total-row">
+      <span class="recap-total-label">Ukupno plaćeno</span>
+      <span class="recap-total-amt">${fmt(total)}</span>
+    </div>`;
+}
+
+function renderYearlyRecap(year) {
+  const el = document.getElementById('bills-yearly-recap');
+  if(!el) return;
+
+  const allBills  = getAllBills();
+  let grandTotal  = 0;
+  let hasAnyData  = false;
+
+  const rows = [];
+  for(let m = 0; m < 12; m++) {
+    const mk      = monthKey(year, m);
+    const bd      = getBillsForMonth(mk);
+    const paid    = allBills.filter(b => bd[b.id]);
+    const mTotal  = paid.reduce((s, b) => s + (bd[b.id].amount || 0), 0);
+    grandTotal   += mTotal;
+    if(paid.length || mTotal > 0) hasAnyData = true;
+    const unpaidN = allBills.length - paid.length;
+
+    rows.push(`
+      <div class="year-row">
+        <div class="yr-left">
+          <div class="yr-month">${MONTHS[m]}</div>
+          <div class="yr-count">${paid.length} plaćeno${unpaidN > 0 ? ` · ${unpaidN} nije` : ''}</div>
+        </div>
+        <div class="yr-amt${mTotal === 0 ? ' zero' : ''}">${mTotal > 0 ? fmt(mTotal) : '—'}</div>
+      </div>`);
+  }
+
+  el.innerHTML = `
+    <div class="recap-hdr">📆 Godišnja rekapitulacija — ${year}</div>
+    ${rows.join('')}
+    <div class="yr-grand">
+      <span class="yr-grand-label">Ukupno ${year}.</span>
+      <span class="yr-grand-amt">${grandTotal > 0 ? fmt(grandTotal) : '—'}</span>
+    </div>`;
 }
 
 // ════════════════════════════════════════════════
@@ -2024,7 +2187,7 @@ function signOutUser() {
       if(!result) return;
       localStorage.removeItem(SESSION_KEY);
       userProfile = null;
-      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{} };
+      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{}, customBills:[] };
       kupovinaExpenses = [];
       if(budzetListener) { dbBudzet.ref(budzetListener).off('value'); budzetListener = null; }
       pinBuffer = '';
