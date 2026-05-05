@@ -261,6 +261,39 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .sc-bar.neg{background:var(--muted);opacity:.4}
 .sc-bar-label{font-size:.5rem;color:var(--muted);text-align:center}
 
+/* ── RAČUNI TAB ── */
+.alarm-banner{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.4);border-radius:12px;padding:11px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.alarm-banner.overdue{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.5)}
+.alarm-banner.all-paid{background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.35)}
+.alarm-icon{font-size:1.3rem;flex-shrink:0}
+.alarm-text{flex:1}
+.alarm-title{font-size:.8rem;font-weight:700;margin-bottom:1px}
+.alarm-sub{font-size:.63rem;color:var(--muted);margin-top:1px}
+.bills-stat-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.bsb-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.bsb-val{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800}
+.bill-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;transition:border-color .2s}
+.bill-card.paid{border-color:rgba(74,222,128,.35);background:rgba(74,222,128,.04)}
+.bill-card.warn{border-color:rgba(251,191,36,.45)}
+.bill-card.overdue{border-color:rgba(248,113,113,.55);background:rgba(248,113,113,.04)}
+.bill-main{display:flex;align-items:center;gap:10px;padding:11px 13px}
+.bill-ic{font-size:1.05rem;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--surface2);flex-shrink:0}
+.bill-info{flex:1;min-width:0}
+.bill-name{font-weight:600;font-size:.84rem}
+.bill-sub{font-size:.62rem;color:var(--muted);margin-top:2px}
+.bill-right{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.bill-status{font-size:.67rem;font-weight:700}
+.bill-status.paid-s{color:var(--green)}
+.bill-status.warn-s{color:var(--yellow)}
+.bill-status.overdue-s{color:var(--red)}
+.bill-status.ok-s{color:var(--muted)}
+.bill-amt-paid{font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--green)}
+.bill-action-btn{font-size:.66rem;font-weight:700;padding:5px 11px;border:none;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.bill-action-btn.pay-btn{background:rgba(200,245,53,.14);color:var(--accent);border:1px solid rgba(200,245,53,.25)}
+.bill-action-btn.pay-btn:active{opacity:.8}
+.bill-action-btn.unpay-btn{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2);font-size:.6rem}
+.bill-expand{padding:10px 13px 12px;border-top:1px solid var(--border)}
+
 .total-saved-card{background:linear-gradient(135deg,#1a2a04,#111a00);border:1px solid var(--accent);border-radius:14px;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .ts-label{font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:2px}
 .ts-amt{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--accent);letter-spacing:-.5px}
@@ -415,6 +448,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   <button class="tab" onclick="showPage('historija')"><span class="tab-icon">📋</span>Historija</button>
   <button class="tab" onclick="showPage('analiza')"><span class="tab-icon">📈</span>Analiza</button>
   <button class="tab" onclick="showPage('stednja')"><span class="tab-icon">🏦</span>Štednja</button>
+  <button class="tab" onclick="showPage('racuni')"><span class="tab-icon">🧾</span>Računi</button>
 </div>
 
 <!-- ═══════════════════════ PREGLED ═══════════════════════ -->
@@ -764,6 +798,30 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   </div>
 </div>
 
+<!-- ═══════════════════════ RAČUNI ═══════════════════════ -->
+<div class="page" id="page-racuni">
+  <div class="month-bar">
+    <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+    <span class="month-label" id="ml-racuni">—</span>
+    <button class="month-nav" onclick="changeMonth(1)">›</button>
+  </div>
+
+  <div class="alarm-banner" id="bills-alarm" style="display:none">
+    <div class="alarm-icon" id="bills-alarm-icon">⚠️</div>
+    <div class="alarm-text">
+      <div class="alarm-title" id="bills-alarm-title">—</div>
+      <div class="alarm-sub" id="bills-alarm-sub">—</div>
+    </div>
+  </div>
+
+  <div class="bills-stat-bar">
+    <span class="bsb-label">Status plaćanja</span>
+    <span class="bsb-val" id="bills-stat">—</span>
+  </div>
+
+  <div id="bills-list"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 </div><!-- /#app-wrap -->
@@ -831,7 +889,8 @@ let localData = {
   expenses: [],
   fixedExpenses: [],
   savings: [],
-  savingsGoal: 0
+  savingsGoal: 0,
+  bills: {}
 };
 
 // Kupovina purchases fetched from Kupovina Firebase (read-only)
@@ -934,7 +993,7 @@ function totalExpenses(key)  { return totalFixed() + totalVar(key) + totalKupovi
 // ════════════════════════════════════════════════
 //  TABS
 // ════════════════════════════════════════════════
-const PAGES = ['pregled','prihodi','rashodi','historija','analiza','stednja'];
+const PAGES = ['pregled','prihodi','rashodi','historija','analiza','stednja','racuni'];
 function showPage(id) {
   PAGES.forEach((p, i) => {
     document.getElementById('page-' + p).classList.toggle('active', p === id);
@@ -956,11 +1015,12 @@ function renderAll() {
   renderHistory();
   renderAnalysis();
   renderStednja();
+  renderBills();
 }
 
 function renderMonthLabels() {
   const lbl = `${MONTHS[curMonth]} ${curYear}`;
-  ['ml-pregled','ml-prihodi','ml-rashodi','ml-stednja'].forEach(id => {
+  ['ml-pregled','ml-prihodi','ml-rashodi','ml-stednja','ml-racuni'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.textContent = lbl;
   });
@@ -1443,8 +1503,9 @@ function loadBudzet() {
       localData.fixedExpenses = d.fixedExpenses ? Object.values(d.fixedExpenses) : [];
       localData.savings       = d.savings       ? Object.values(d.savings)       : [];
       localData.savingsGoal   = d.savingsGoal   || 0;
+      localData.bills         = d.bills         || {};
     } else {
-      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0 };
+      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{} };
     }
     setSyncStatus('connected', 'Synced');
     renderAll();
@@ -1695,6 +1756,188 @@ function renderStednja() {
 }
 
 // ════════════════════════════════════════════════
+//  RAČUNI — praćanje plaćanja
+// ════════════════════════════════════════════════
+const BILLS = [
+  { id:'struja',        name:'Struja',        icon:'💡', dueDay:18 },
+  { id:'voda',          name:'Voda',          icon:'💧', dueDay:18 },
+  { id:'smece',         name:'Smeće',         icon:'🗑️', dueDay:18 },
+  { id:'internet_tv',   name:'Internet TV',   icon:'📡', dueDay:18 },
+  { id:'kredit_glavni', name:'Kredit glavni', icon:'🏦', dueDay:18 },
+  { id:'kredit_bbi',    name:'Kredit BBI',    icon:'🏛️', dueDay:18 },
+  { id:'vrtic',         name:'Vrtić',         icon:'🧒', dueDay:18 },
+];
+
+let expandedBillId = null;
+
+function getBillsForMonth(mk) {
+  return (localData.bills || {})[mk] || {};
+}
+
+function markBillPaid(billId) {
+  const mk      = curKey();
+  const dateVal = (document.getElementById('bill-date-' + billId) || {}).value;
+  const amtRaw  = (document.getElementById('bill-amt-'  + billId) || {}).value;
+  const amtVal  = parseFloat(amtRaw) || 0;
+
+  if(!dateVal) { toast('⚠️ Odaberite datum plaćanja'); return; }
+
+  if(!localData.bills)     localData.bills     = {};
+  if(!localData.bills[mk]) localData.bills[mk] = {};
+  const entry = { paidDate: dateVal, amount: amtVal };
+  localData.bills[mk][billId] = entry;
+
+  setSyncStatus('syncing', 'Snima...');
+  dbBudzet.ref(`${ROOT_BUD}/bills/${mk}/${billId}`).set(entry)
+    .then(() => setSyncStatus('connected', 'Synced'))
+    .catch(err => { console.error(err); setSyncStatus('error', 'Greška'); });
+
+  expandedBillId = null;
+  toast('✅ Račun označen kao plaćen!');
+  renderBills();
+}
+
+function unmarkBillPaid(billId) {
+  const mk = curKey();
+  if(!localData.bills || !localData.bills[mk]) return;
+  delete localData.bills[mk][billId];
+
+  dbBudzet.ref(`${ROOT_BUD}/bills/${mk}/${billId}`).remove()
+    .catch(err => console.error(err));
+
+  toast('↩️ Plaćanje poništeno');
+  renderBills();
+}
+
+function toggleBillExpand(billId) {
+  expandedBillId = (expandedBillId === billId) ? null : billId;
+  renderBills();
+}
+
+function renderBills() {
+  const cont = document.getElementById('bills-list');
+  if(!cont) return;
+
+  const mk        = curKey();
+  const today     = new Date();
+  const todayDay  = today.getDate();
+  const isCurMonth = (mk === monthKey(today.getFullYear(), today.getMonth()));
+  const billsData = getBillsForMonth(mk);
+
+  // — Alarm banner —
+  const alarmEl    = document.getElementById('bills-alarm');
+  const alarmIcon  = document.getElementById('bills-alarm-icon');
+  const alarmTitle = document.getElementById('bills-alarm-title');
+  const alarmSub   = document.getElementById('bills-alarm-sub');
+
+  if(alarmEl) {
+    const unpaid  = BILLS.filter(b => !billsData[b.id]);
+    const overdue = unpaid.filter(b => isCurMonth && todayDay > b.dueDay);
+    const warning = unpaid.filter(b => isCurMonth && todayDay >= b.dueDay - 3 && todayDay <= b.dueDay);
+    const paidAll = unpaid.length === 0;
+
+    if(paidAll) {
+      alarmEl.style.display = 'flex';
+      alarmEl.className = 'alarm-banner all-paid';
+      alarmIcon.textContent  = '🎉';
+      alarmTitle.textContent = 'Svi računi su plaćeni za ovaj mjesec!';
+      alarmSub.textContent   = 'Odlično! Sve obaveze su izmirene.';
+    } else if(overdue.length > 0) {
+      alarmEl.style.display = 'flex';
+      alarmEl.className = 'alarm-banner overdue';
+      alarmIcon.textContent  = '🔴';
+      alarmTitle.textContent = `Kasno plaćanje! ${overdue.length} ${overdue.length === 1 ? 'račun nije plaćen' : 'računa nisu plaćeni'}!`;
+      alarmSub.textContent   = overdue.map(b => b.name).join(', ') + ' — rok je bio 18. u mj.';
+    } else if(warning.length > 0) {
+      alarmEl.style.display = 'flex';
+      alarmEl.className = 'alarm-banner';
+      alarmIcon.textContent  = '⚠️';
+      alarmTitle.textContent = `${warning.length} ${warning.length === 1 ? 'račun treba' : 'računa treba'} platiti do 18.!`;
+      alarmSub.textContent   = warning.map(b => b.name).join(', ');
+    } else if(isCurMonth && unpaid.length > 0 && todayDay >= 10) {
+      alarmEl.style.display = 'flex';
+      alarmEl.className = 'alarm-banner';
+      alarmIcon.textContent  = '📅';
+      alarmTitle.textContent = `${unpaid.length} računa čeka plaćanje`;
+      alarmSub.textContent   = 'Rok plaćanja: do 18. u mjesecu';
+    } else {
+      alarmEl.style.display = 'none';
+    }
+  }
+
+  // — Stats bar —
+  const statEl = document.getElementById('bills-stat');
+  if(statEl) {
+    const paidCount = BILLS.filter(b => billsData[b.id]).length;
+    statEl.textContent = `${paidCount} / ${BILLS.length} plaćeno`;
+    statEl.style.color = paidCount === BILLS.length ? 'var(--green)'
+                       : paidCount > 0              ? 'var(--yellow)'
+                       :                              'var(--muted)';
+  }
+
+  // — Bill cards —
+  cont.innerHTML = BILLS.map(bill => {
+    const payment    = billsData[bill.id];
+    const isPaid     = !!payment;
+    const isExpanded = expandedBillId === bill.id;
+
+    let cardCls  = 'bill-card';
+    let stsCls   = 'ok-s';
+    let stsText  = 'Čeka plaćanje';
+
+    if(isPaid) {
+      cardCls += ' paid';
+      stsCls  = 'paid-s';
+      stsText = '✅ Plaćeno';
+    } else if(isCurMonth) {
+      if(todayDay > 18)       { cardCls += ' overdue'; stsCls = 'overdue-s'; stsText = '🔴 Kasno!'; }
+      else if(todayDay >= 15) { cardCls += ' warn';    stsCls = 'warn-s';    stsText = '⚠️ Uskoro ističe'; }
+    }
+
+    const expandHtml = (isExpanded && !isPaid) ? `
+      <div class="bill-expand">
+        <div class="row2">
+          <div class="field">
+            <label>Datum plaćanja</label>
+            <input type="date" id="bill-date-${bill.id}" value="${todayStr()}">
+          </div>
+          <div class="field">
+            <label>Iznos (KM) — opciono</label>
+            <input type="number" id="bill-amt-${bill.id}" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
+          </div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:6px;font-size:.82rem" onclick="markBillPaid('${bill.id}')">✅ Potvrdi plaćanje</button>
+      </div>` : '';
+
+    const rightHtml = isPaid ? `
+      <div class="bill-right">
+        <div class="bill-status paid-s">✅ Plaćeno</div>
+        ${payment.amount > 0 ? `<div class="bill-amt-paid">${fmt(payment.amount)}</div>` : ''}
+        <button class="bill-action-btn unpay-btn" onclick="unmarkBillPaid('${bill.id}')">Poništi</button>
+      </div>` : `
+      <div class="bill-right">
+        <div class="bill-status ${stsCls}">${stsText}</div>
+        <button class="bill-action-btn pay-btn" onclick="toggleBillExpand('${bill.id}')">
+          ${isExpanded ? '✕ Zatvori' : '+ Plati'}
+        </button>
+      </div>`;
+
+    return `
+      <div class="${cardCls}">
+        <div class="bill-main">
+          <div class="bill-ic">${bill.icon}</div>
+          <div class="bill-info">
+            <div class="bill-name">${bill.name}</div>
+            <div class="bill-sub">${isPaid ? `Plaćeno: ${payment.paidDate}` : `Rok: do 18. u mjesecu`}</div>
+          </div>
+          ${rightHtml}
+        </div>
+        ${expandHtml}
+      </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════
 //  AUTH — PIN login
 // ════════════════════════════════════════════════
 const PIN_DEFAULTS = { nedim: '2501', azra: '1001' };
@@ -1781,7 +2024,7 @@ function signOutUser() {
       if(!result) return;
       localStorage.removeItem(SESSION_KEY);
       userProfile = null;
-      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0 };
+      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{} };
       kupovinaExpenses = [];
       if(budzetListener) { dbBudzet.ref(budzetListener).off('value'); budzetListener = null; }
       pinBuffer = '';
