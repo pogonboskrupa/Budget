@@ -469,10 +469,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   <button class="tab active" onclick="showPage('pregled')"><span class="tab-icon">📊</span>Pregled</button>
   <button class="tab" onclick="showPage('prihodi')"><span class="tab-icon">💰</span>Prihodi</button>
   <button class="tab" onclick="showPage('rashodi')"><span class="tab-icon">💸</span>Rashodi</button>
+  <button class="tab" onclick="showPage('racuni')"><span class="tab-icon">🧾</span>Računi</button>
   <button class="tab" onclick="showPage('historija')"><span class="tab-icon">📋</span>Historija</button>
   <button class="tab" onclick="showPage('analiza')"><span class="tab-icon">📈</span>Analiza</button>
   <button class="tab" onclick="showPage('stednja')"><span class="tab-icon">🏦</span>Štednja</button>
-  <button class="tab" onclick="showPage('racuni')"><span class="tab-icon">🧾</span>Računi</button>
 </div>
 
 <!-- ═══════════════════════ PREGLED ═══════════════════════ -->
@@ -1040,7 +1040,7 @@ function totalExpenses(key)  { return totalFixed() + totalVar(key) + totalKupovi
 // ════════════════════════════════════════════════
 //  TABS
 // ════════════════════════════════════════════════
-const PAGES = ['pregled','prihodi','rashodi','historija','analiza','stednja','racuni'];
+const PAGES = ['pregled','prihodi','rashodi','racuni','historija','analiza','stednja'];
 function showPage(id) {
   PAGES.forEach((p, i) => {
     document.getElementById('page-' + p).classList.toggle('active', p === id);
@@ -1818,6 +1818,18 @@ const BILLS = [
 
 let expandedBillId = null;
 
+// Ovi računi su već evidentirani kao fiksni rashodi — ne dodaju se ponovo
+const BILL_SKIP_EXPENSE = new Set(['kredit_glavni', 'kredit_bbi']);
+
+// Mapiranje bill ID → kategorija rashoda
+const BILL_EXPENSE_CAT = {
+  struja:      'komunalije',
+  voda:        'komunalije',
+  smece:       'komunalije',
+  internet_tv: 'internet',
+  vrtic:       'vrtić',
+};
+
 function getAllBills() {
   return [...BILLS, ...(localData.customBills || [])];
 }
@@ -1864,9 +1876,28 @@ function markBillPaid(billId) {
   if(!dateVal) { toast('⚠️ Odaberite datum plaćanja'); return; }
   if(!amtVal || amtVal <= 0) { toast('⚠️ Unesite iznos plaćanja'); return; }
 
+  const bill     = getAllBills().find(b => b.id === billId);
+  const billName = bill ? bill.name : billId;
+
+  // Automatski dodaj u varijabilne rashode (osim kredita koji su već u fiksnim)
+  let expenseId = null;
+  if(!BILL_SKIP_EXPENSE.has(billId)) {
+    expenseId = Date.now();
+    const expEntry = {
+      id:     expenseId,
+      name:   `${billName} — ${MONTHS[curMonth]} ${curYear}`,
+      amount: amtVal,
+      date:   dateVal,
+      cat:    BILL_EXPENSE_CAT[billId] || 'komunalije',
+    };
+    localData.expenses.push(expEntry);
+    pushBudzet('expenses', expEntry);
+  }
+
   if(!localData.bills)     localData.bills     = {};
   if(!localData.bills[mk]) localData.bills[mk] = {};
   const entry = { paidDate: dateVal, amount: amtVal };
+  if(expenseId) entry.expenseId = expenseId;
   localData.bills[mk][billId] = entry;
 
   setSyncStatus('syncing', 'Snima...');
@@ -1875,20 +1906,28 @@ function markBillPaid(billId) {
     .catch(err => { console.error(err); setSyncStatus('error', 'Greška'); });
 
   expandedBillId = null;
-  toast('✅ Račun plaćen!');
-  renderBills();
+  toast(BILL_SKIP_EXPENSE.has(billId) ? '✅ Račun plaćen!' : '✅ Plaćeno i dodano u rashode!');
+  renderAll();
 }
 
 function unmarkBillPaid(billId) {
   const mk = curKey();
   if(!localData.bills || !localData.bills[mk]) return;
-  delete localData.bills[mk][billId];
 
+  const payment = localData.bills[mk][billId];
+
+  // Ukloni automatski kreiran rashod ako postoji
+  if(payment && payment.expenseId) {
+    localData.expenses = localData.expenses.filter(e => e.id !== payment.expenseId);
+    deleteBudzet('expenses', payment.expenseId);
+  }
+
+  delete localData.bills[mk][billId];
   dbBudzet.ref(`${ROOT_BUD}/bills/${mk}/${billId}`).remove()
     .catch(err => console.error(err));
 
   toast('↩️ Plaćanje poništeno');
-  renderBills();
+  renderAll();
 }
 
 function toggleBillExpand(billId) {
@@ -2012,7 +2051,7 @@ function renderBills() {
           <div class="bill-ic">${bill.icon}</div>
           <div class="bill-info">
             <div class="bill-name">${esc(bill.name)}${isCustom ? ` <button class="bill-del-custom" onclick="deleteCustomBill('${bill.id}')" title="Obriši račun">✕</button>` : ''}</div>
-            <div class="bill-sub">${isPaid ? `Plaćeno: ${payment.paidDate}` : `Rok: do 18. u mjesecu`}</div>
+            <div class="bill-sub">${isPaid ? `Plaćeno: ${payment.paidDate}` : BILL_SKIP_EXPENSE.has(bill.id) ? `Rok: do 18. · već u fiksnim rashodima` : `Rok: do 18. u mjesecu`}</div>
           </div>
           ${rightHtml}
         </div>
