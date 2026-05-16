@@ -503,7 +503,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
   <div class="savings-card">
     <div class="sc-left">
-      <div class="sc-label">💚 Uštedina</div>
+      <div class="sc-label">💚 Ušteđevina</div>
       <div class="sc-amt" id="sc-amt">0 KM</div>
       <div class="sc-sub" id="sc-sub">nema podataka</div>
     </div>
@@ -805,7 +805,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     </div>
     <button class="btn btn-primary" onclick="addSavings()">+ Dodaj ušteđevinu</button>
     <div class="divider"></div>
-    <div id="savings-list"><div class="empty-state" style="padding:14px"><div class="icon">🏦</div><p>Nema unesenih uštedina</p></div></div>
+    <div id="savings-list"><div class="empty-state" style="padding:14px"><div class="icon">🏦</div><p>Nema unesenih ušteđevina</p></div></div>
     <div class="quick-total" id="savings-total-row" style="display:none">
       <span class="qt-label">Ukupno ovog mj.</span>
       <span class="qt-amt" id="savings-total-amt" style="color:var(--accent)">0 KM</span>
@@ -907,6 +907,7 @@ const dbKupovina  = kupovinaApp.database();
 
 // ROOT_BUD is set dynamically after login: 'budzet_cehic/nedim' or 'budzet_cehic/azra'
 let ROOT_BUD = 'budzet_cehic/nedim'; // fallback, overwritten on login
+const ROOT_SHARED = 'budzet_cehic/shared'; // zajednički podaci za oba korisnika (računi)
 const ROOT_KUP = 'porodica_cehic';
 
 const PROFILES = {
@@ -936,9 +937,11 @@ let localData = {
   fixedExpenses: [],
   savings: [],
   savingsGoal: 0,
-  bills: {},
-  customBills: []
 };
+
+// Dijeljeni podaci — isti za Nedima i Azru
+let sharedData    = { bills: {}, customBills: [] };
+let sharedListener = null;
 
 // Kupovina purchases fetched from Kupovina Firebase (read-only)
 let kupovinaExpenses = [];
@@ -1550,10 +1553,8 @@ function loadBudzet() {
       localData.fixedExpenses = d.fixedExpenses ? Object.values(d.fixedExpenses) : [];
       localData.savings       = d.savings       ? Object.values(d.savings)       : [];
       localData.savingsGoal   = d.savingsGoal   || 0;
-      localData.bills         = d.bills         || {};
-      localData.customBills   = d.customBills   ? Object.values(d.customBills) : [];
     } else {
-      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{}, customBills:[] };
+      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0 };
     }
     setSyncStatus('connected', 'Synced');
     renderAll();
@@ -1622,6 +1623,29 @@ function loadKupovinaExpenses() {
 }
 
 // ════════════════════════════════════════════════
+//  DIJELJENI RAČUNI — zajednički listener za oba korisnika
+// ════════════════════════════════════════════════
+function loadSharedBills() {
+  if(sharedListener) {
+    dbBudzet.ref(ROOT_SHARED).off('value');
+    sharedListener = null;
+  }
+  sharedListener = ROOT_SHARED;
+  dbBudzet.ref(ROOT_SHARED).on('value', snap => {
+    if(snap.exists()) {
+      const d = snap.val();
+      sharedData.bills       = d.bills       || {};
+      sharedData.customBills = d.customBills ? Object.values(d.customBills) : [];
+    } else {
+      sharedData = { bills: {}, customBills: [] };
+    }
+    renderBills();
+  }, err => {
+    console.warn('Shared bills load error:', err);
+  });
+}
+
+// ════════════════════════════════════════════════
 //  ŠTEDNJA
 // ════════════════════════════════════════════════
 const FUND_LABELS = {
@@ -1660,7 +1684,7 @@ function addSavings() {
   document.getElementById('sav-amount').value = '';
   document.getElementById('sav-note').value   = '';
   document.getElementById('sav-date').value   = todayStr();
-  toast('💰 Uštedina dodana!');
+  toast('💰 Ušteđevina dodana!');
   renderAll();
 }
 
@@ -1759,7 +1783,7 @@ function renderStednja() {
   const totA  = document.getElementById('savings-total-amt');
   if(cont) {
     if(!list.length) {
-      cont.innerHTML = '<div class="empty-state" style="padding:14px"><div class="icon">🏦</div><p>Nema unesenih uštedina za ovaj mj.</p></div>';
+      cont.innerHTML = '<div class="empty-state" style="padding:14px"><div class="icon">🏦</div><p>Nema unesenih ušteđevina za ovaj mj.</p></div>';
       if(totR) totR.style.display = 'none';
     } else {
       cont.innerHTML = list.map(s => `
@@ -1831,11 +1855,11 @@ const BILL_EXPENSE_CAT = {
 };
 
 function getAllBills() {
-  return [...BILLS, ...(localData.customBills || [])];
+  return [...BILLS, ...(sharedData.customBills || [])];
 }
 
 function getBillsForMonth(mk) {
-  return (localData.bills || {})[mk] || {};
+  return (sharedData.bills || {})[mk] || {};
 }
 
 function addCustomBill() {
@@ -1845,11 +1869,10 @@ function addCustomBill() {
 
   const id    = 'custom_' + Date.now();
   const entry = { id, name, icon, dueDay: 18 };
-  if(!localData.customBills) localData.customBills = [];
-  localData.customBills.push(entry);
+  sharedData.customBills.push(entry);
 
   setSyncStatus('syncing', 'Snima...');
-  dbBudzet.ref(`${ROOT_BUD}/customBills/${id}`).set(entry)
+  dbBudzet.ref(`${ROOT_SHARED}/customBills/${id}`).set(entry)
     .then(() => setSyncStatus('connected', 'Synced'))
     .catch(err => { console.error(err); setSyncStatus('error', 'Greška'); });
 
@@ -1860,8 +1883,8 @@ function addCustomBill() {
 }
 
 function deleteCustomBill(id) {
-  localData.customBills = (localData.customBills || []).filter(b => b.id !== id);
-  dbBudzet.ref(`${ROOT_BUD}/customBills/${id}`).remove()
+  sharedData.customBills = sharedData.customBills.filter(b => b.id !== id);
+  dbBudzet.ref(`${ROOT_SHARED}/customBills/${id}`).remove()
     .catch(err => console.error(err));
   toast('🗑️ Račun obrisan');
   renderBills();
@@ -1894,14 +1917,14 @@ function markBillPaid(billId) {
     pushBudzet('expenses', expEntry);
   }
 
-  if(!localData.bills)     localData.bills     = {};
-  if(!localData.bills[mk]) localData.bills[mk] = {};
-  const entry = { paidDate: dateVal, amount: amtVal };
+  if(!sharedData.bills)     sharedData.bills     = {};
+  if(!sharedData.bills[mk]) sharedData.bills[mk] = {};
+  const entry = { paidDate: dateVal, amount: amtVal, paidBy: userProfile.key };
   if(expenseId) entry.expenseId = expenseId;
-  localData.bills[mk][billId] = entry;
+  sharedData.bills[mk][billId] = entry;
 
   setSyncStatus('syncing', 'Snima...');
-  dbBudzet.ref(`${ROOT_BUD}/bills/${mk}/${billId}`).set(entry)
+  dbBudzet.ref(`${ROOT_SHARED}/bills/${mk}/${billId}`).set(entry)
     .then(() => setSyncStatus('connected', 'Synced'))
     .catch(err => { console.error(err); setSyncStatus('error', 'Greška'); });
 
@@ -1911,19 +1934,17 @@ function markBillPaid(billId) {
 }
 
 function unmarkBillPaid(billId) {
-  const mk = curKey();
-  if(!localData.bills || !localData.bills[mk]) return;
+  const mk      = curKey();
+  const payment = getBillsForMonth(mk)[billId];
 
-  const payment = localData.bills[mk][billId];
-
-  // Ukloni automatski kreiran rashod ako postoji
-  if(payment && payment.expenseId) {
+  // Ukloni automatski kreiran rashod samo ako ga je OVAJ korisnik platio
+  if(payment && payment.expenseId && payment.paidBy === userProfile.key) {
     localData.expenses = localData.expenses.filter(e => e.id !== payment.expenseId);
     deleteBudzet('expenses', payment.expenseId);
   }
 
-  delete localData.bills[mk][billId];
-  dbBudzet.ref(`${ROOT_BUD}/bills/${mk}/${billId}`).remove()
+  if(sharedData.bills[mk]) delete sharedData.bills[mk][billId];
+  dbBudzet.ref(`${ROOT_SHARED}/bills/${mk}/${billId}`).remove()
     .catch(err => console.error(err));
 
   toast('↩️ Plaćanje poništeno');
@@ -2051,7 +2072,7 @@ function renderBills() {
           <div class="bill-ic">${bill.icon}</div>
           <div class="bill-info">
             <div class="bill-name">${esc(bill.name)}${isCustom ? ` <button class="bill-del-custom" onclick="deleteCustomBill('${bill.id}')" title="Obriši račun">✕</button>` : ''}</div>
-            <div class="bill-sub">${isPaid ? `Plaćeno: ${payment.paidDate}` : BILL_SKIP_EXPENSE.has(bill.id) ? `Rok: do 18. · već u fiksnim rashodima` : `Rok: do 18. u mjesecu`}</div>
+            <div class="bill-sub">${isPaid ? `Plaćeno: ${payment.paidDate}${payment.paidBy ? ` · ${PROFILES[payment.paidBy]?.name || payment.paidBy}` : ''}` : BILL_SKIP_EXPENSE.has(bill.id) ? `Rok: do 18. · već u fiksnim rashodima` : `Rok: do 18. u mjesecu`}</div>
           </div>
           ${rightHtml}
         </div>
@@ -2226,9 +2247,11 @@ function signOutUser() {
       if(!result) return;
       localStorage.removeItem(SESSION_KEY);
       userProfile = null;
-      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{}, customBills:[] };
+      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0 };
+      sharedData = { bills:{}, customBills:[] };
       kupovinaExpenses = [];
-      if(budzetListener) { dbBudzet.ref(budzetListener).off('value'); budzetListener = null; }
+      if(budzetListener)  { dbBudzet.ref(budzetListener).off('value');  budzetListener  = null; }
+      if(sharedListener)  { dbBudzet.ref(ROOT_SHARED).off('value');     sharedListener  = null; }
       pinBuffer = '';
       pinRenderDots();
       setSyncStatus('', '—');
@@ -2285,6 +2308,7 @@ function activateProfile(key) {
   // Load data for this user
   loadBudzet();
   loadKupovinaExpenses();
+  loadSharedBills();
 }
 
 // ════════════════════════════════════════════════
