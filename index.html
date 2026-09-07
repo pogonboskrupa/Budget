@@ -513,6 +513,44 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     </div>
   </div>
 
+  <!-- Trenutno stanje novca (gotovina + kartica) -->
+  <div class="goal-card" id="balance-card">
+    <div class="goal-top">
+      <span class="goal-label">💵 Trenutno stanje</span>
+      <button class="goal-edit-btn" onclick="toggleBalanceEdit()">Izmijeni</button>
+    </div>
+    <div class="ov-grid" style="margin-bottom:0" id="balance-display">
+      <div class="ov-card">
+        <div class="ov-label">💵 Gotovina</div>
+        <div class="ov-amt" id="bal-cash">0 KM</div>
+      </div>
+      <div class="ov-card">
+        <div class="ov-label">💳 Kartica</div>
+        <div class="ov-amt" id="bal-card">0 KM</div>
+      </div>
+    </div>
+    <div id="balance-edit-row" style="display:none;margin-top:10px">
+      <div class="row2">
+        <div class="field">
+          <label>Gotovina (KM)</label>
+          <input type="number" id="bal-cash-input" step="0.01" min="0" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>Kartica (KM)</label>
+          <input type="number" id="bal-card-input" step="0.01" min="0" inputmode="decimal">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveBalance()">Spremi stanje</button>
+    </div>
+    <div class="field" style="margin-top:10px;margin-bottom:0">
+      <label>Izvor za Kupovina app (automatsko oduzimanje)</label>
+      <select id="kup-source-select" onchange="setKupovinaSource(this.value)">
+        <option value="cash">💵 Gotovina</option>
+        <option value="card">💳 Kartica</option>
+      </select>
+    </div>
+  </div>
+
   <div class="budget-bar-card">
     <div class="bb-top">
       <span class="bb-label">Potrošeno od prihoda</span>
@@ -937,11 +975,19 @@ let localData = {
   savings: [],
   savingsGoal: 0,
   bills: {},
-  customBills: []
+  customBills: [],
+  balance: { cash: 0, card: 0 },
+  kupovinaSource: 'card',
+  processedKupovina: {},
+  kupovinaBaselined: false
 };
 
 // Kupovina purchases fetched from Kupovina Firebase (read-only)
 let kupovinaExpenses = [];
+
+// Set true once the first Budžet snapshot has loaded — guards against
+// deducting the whole Kupovina history the first time this feature runs
+let budzetLoaded = false;
 
 // ════════════════════════════════════════════════
 //  MONTH STATE
@@ -1063,6 +1109,7 @@ function renderAll() {
   renderAnalysis();
   renderStednja();
   renderBills();
+  renderBalance();
 }
 
 function renderMonthLabels() {
@@ -1552,10 +1599,17 @@ function loadBudzet() {
       localData.savingsGoal   = d.savingsGoal   || 0;
       localData.bills         = d.bills         || {};
       localData.customBills   = d.customBills   ? Object.values(d.customBills) : [];
+      localData.balance       = d.balance       || { cash: 0, card: 0 };
+      localData.kupovinaSource = d.kupovinaSource || 'card';
+      localData.processedKupovina = d.processedKupovina || {};
+      localData.kupovinaBaselined = !!d.kupovinaBaselined;
     } else {
-      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{}, customBills:[] };
+      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{}, customBills:[],
+        balance:{ cash:0, card:0 }, kupovinaSource:'card', processedKupovina:{}, kupovinaBaselined:false };
     }
     setSyncStatus('connected', 'Synced');
+    budzetLoaded = true;
+    maybeProcessKupovina();
     renderAll();
   }, err => {
     console.error('Budžet load error:', err);
@@ -1589,6 +1643,7 @@ function loadKupovinaExpenses() {
       });
     }
     kupovinaExpenses = kupList;
+    maybeProcessKupovina();
     renderAll();
   }, err => {
     console.warn('Kupovina history read error:', err);
@@ -1615,9 +1670,90 @@ function loadKupovinaExpenses() {
         }
       });
     }
+    maybeProcessKupovina();
     renderAll();
   }, err => {
     console.warn('Kupovina receipts read error:', err);
+  });
+}
+
+// ════════════════════════════════════════════════
+//  STANJE NOVCA (Gotovina & Kartica) + auto-deduct
+// ════════════════════════════════════════════════
+function renderBalance() {
+  const bal = localData.balance || { cash: 0, card: 0 };
+  const cashEl = document.getElementById('bal-cash');
+  const cardEl = document.getElementById('bal-card');
+  if(cashEl) cashEl.textContent = fmt(bal.cash || 0);
+  if(cardEl) cardEl.textContent = fmt(bal.card || 0);
+  const sel = document.getElementById('kup-source-select');
+  if(sel) sel.value = localData.kupovinaSource || 'card';
+}
+
+let balanceEditOpen = false;
+function toggleBalanceEdit() {
+  balanceEditOpen = !balanceEditOpen;
+  const row = document.getElementById('balance-edit-row');
+  row.style.display = balanceEditOpen ? 'block' : 'none';
+  if(balanceEditOpen) {
+    const bal = localData.balance || { cash: 0, card: 0 };
+    document.getElementById('bal-cash-input').value = bal.cash || '';
+    document.getElementById('bal-card-input').value = bal.card || '';
+  }
+}
+
+function saveBalance() {
+  const cash = parseFloat(document.getElementById('bal-cash-input').value) || 0;
+  const card = parseFloat(document.getElementById('bal-card-input').value) || 0;
+  localData.balance = { cash, card };
+  setSyncStatus('syncing', 'Snima...');
+  dbBudzet.ref(`${ROOT_BUD}/balance`).set(localData.balance)
+    .then(() => setSyncStatus('connected', 'Synced'))
+    .catch(err => { console.error(err); setSyncStatus('error', 'Greška'); });
+  balanceEditOpen = false;
+  document.getElementById('balance-edit-row').style.display = 'none';
+  toast('💾 Stanje sačuvano!');
+  renderBalance();
+}
+
+function setKupovinaSource(src) {
+  localData.kupovinaSource = src;
+  dbBudzet.ref(`${ROOT_BUD}/kupovinaSource`).set(src).catch(err => console.error(err));
+}
+
+// Deducts/adds `amount` on a balance source (cash/card) and syncs it
+function adjustBalance(source, amount) {
+  if(!localData.balance) localData.balance = { cash: 0, card: 0 };
+  const cur = localData.balance[source] || 0;
+  localData.balance[source] = Math.round((cur + amount) * 100) / 100;
+  dbBudzet.ref(`${ROOT_BUD}/balance/${source}`).set(localData.balance[source])
+    .catch(err => console.error(err));
+  renderBalance();
+}
+
+// Auto-deducts newly seen Kupovina purchases from the chosen balance source.
+// First run after this feature ships only baselines existing purchases
+// (marks them processed without deducting) so history isn't retroactively subtracted.
+function maybeProcessKupovina() {
+  if(!budzetLoaded) return;
+  if(!localData.processedKupovina) localData.processedKupovina = {};
+
+  if(!localData.kupovinaBaselined) {
+    kupovinaExpenses.forEach(k => { localData.processedKupovina['k_' + k.id] = true; });
+    localData.kupovinaBaselined = true;
+    dbBudzet.ref(`${ROOT_BUD}/processedKupovina`).set(localData.processedKupovina).catch(err => console.error(err));
+    dbBudzet.ref(`${ROOT_BUD}/kupovinaBaselined`).set(true).catch(err => console.error(err));
+    return;
+  }
+
+  const src = localData.kupovinaSource || 'card';
+  kupovinaExpenses.forEach(k => {
+    const pid = 'k_' + k.id;
+    if(!localData.processedKupovina[pid]) {
+      localData.processedKupovina[pid] = true;
+      adjustBalance(src, -(k.amount || 0));
+      dbBudzet.ref(`${ROOT_BUD}/processedKupovina/${pid}`).set(true).catch(err => console.error(err));
+    }
   });
 }
 
@@ -1872,6 +2008,7 @@ function markBillPaid(billId) {
   const dateVal = (document.getElementById('bill-date-' + billId) || {}).value;
   const amtRaw  = (document.getElementById('bill-amt-'  + billId) || {}).value;
   const amtVal  = parseFloat(amtRaw) || 0;
+  const method  = (document.getElementById('bill-method-' + billId) || {}).value || 'cash';
 
   if(!dateVal) { toast('⚠️ Odaberite datum plaćanja'); return; }
   if(!amtVal || amtVal <= 0) { toast('⚠️ Unesite iznos plaćanja'); return; }
@@ -1896,7 +2033,7 @@ function markBillPaid(billId) {
 
   if(!localData.bills)     localData.bills     = {};
   if(!localData.bills[mk]) localData.bills[mk] = {};
-  const entry = { paidDate: dateVal, amount: amtVal };
+  const entry = { paidDate: dateVal, amount: amtVal, method };
   if(expenseId) entry.expenseId = expenseId;
   localData.bills[mk][billId] = entry;
 
@@ -1904,6 +2041,8 @@ function markBillPaid(billId) {
   dbBudzet.ref(`${ROOT_BUD}/bills/${mk}/${billId}`).set(entry)
     .then(() => setSyncStatus('connected', 'Synced'))
     .catch(err => { console.error(err); setSyncStatus('error', 'Greška'); });
+
+  adjustBalance(method, -amtVal);
 
   expandedBillId = null;
   toast(BILL_SKIP_EXPENSE.has(billId) ? '✅ Račun plaćen!' : '✅ Plaćeno i dodano u rashode!');
@@ -1920,6 +2059,11 @@ function unmarkBillPaid(billId) {
   if(payment && payment.expenseId) {
     localData.expenses = localData.expenses.filter(e => e.id !== payment.expenseId);
     deleteBudzet('expenses', payment.expenseId);
+  }
+
+  // Vrati novac na stanje s kojeg je plaćeno
+  if(payment && payment.method) {
+    adjustBalance(payment.method, payment.amount || 0);
   }
 
   delete localData.bills[mk][billId];
@@ -2028,6 +2172,13 @@ function renderBills() {
             <label>Iznos (KM)</label>
             <input type="number" id="bill-amt-${bill.id}" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
           </div>
+        </div>
+        <div class="field">
+          <label>Način plaćanja</label>
+          <select id="bill-method-${bill.id}">
+            <option value="cash">💵 Gotovina</option>
+            <option value="card">💳 Kartica</option>
+          </select>
         </div>
         <button class="btn btn-primary" style="margin-top:6px;font-size:.82rem" onclick="markBillPaid('${bill.id}')">✅ Potvrdi plaćanje</button>
       </div>` : '';
@@ -2226,8 +2377,10 @@ function signOutUser() {
       if(!result) return;
       localStorage.removeItem(SESSION_KEY);
       userProfile = null;
-      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{}, customBills:[] };
+      localData = { incomes:[], expenses:[], fixedExpenses:[], savings:[], savingsGoal:0, bills:{}, customBills:[],
+        balance:{ cash:0, card:0 }, kupovinaSource:'card', processedKupovina:{}, kupovinaBaselined:false };
       kupovinaExpenses = [];
+      budzetLoaded = false;
       if(budzetListener) { dbBudzet.ref(budzetListener).off('value'); budzetListener = null; }
       pinBuffer = '';
       pinRenderDots();
